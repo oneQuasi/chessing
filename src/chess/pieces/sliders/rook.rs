@@ -1,6 +1,5 @@
-use num::{PrimInt, Unsigned};
 
-use crate::{bitboard::BitBoard, game::{action::{make_chess_move, Action, HistoryState}, piece::{Piece, PieceProcessor}, Board}};
+use crate::{bitboard::{BitBoard, BitInt}, game::{action::{make_chess_move, Action, HistoryState}, piece::{Piece, PieceProcessor}, Board}};
 
 use super::{ray_attacks_backward, ray_attacks_forward, repeat};
 
@@ -12,7 +11,7 @@ const ALL: usize = 4;
 
 pub struct RookProcess;
 
-impl<T: PrimInt + Unsigned> PieceProcessor<T> for RookProcess {
+impl<T: BitInt> PieceProcessor<T> for RookProcess {
     fn process(&self, board: &mut Board<T>, piece_index: usize) {
         let edges = board.edges[0];
         board.lookup[piece_index] = vec![ vec![]; 5 ];
@@ -85,6 +84,6 @@ impl<T: PrimInt + Unsigned> PieceProcessor<T> for RookProcess {
     }
 }
 
-pub fn create_rook<T: PrimInt + Unsigned>() -> Piece<T> {
+pub fn create_rook<T: BitInt>() -> Piece<T> {
     Piece::new("r", "rook", Box::new(RookProcess))
 }

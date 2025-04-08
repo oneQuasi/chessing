@@ -1,10 +1,9 @@
-use num::{PrimInt, Unsigned};
 use rustc_hash::FxHashMap as HashMap;
 
 use action::{Action, HistoryState, HistoryUpdate};
 use piece::Piece;
 
-use crate::bitboard::{BitBoard, Bounds, Edges};
+use crate::bitboard::{BitBoard, BitInt, Bounds, Edges};
 
 pub mod piece;
 pub mod action;
@@ -12,19 +11,19 @@ pub mod perft;
 pub mod suite;
 pub mod zobrist;
 
-pub type AttackDirections<T : PrimInt + Unsigned> = Vec<BitBoard<T>>;
+pub type AttackDirections<T > = Vec<BitBoard<T>>;
 /// AttackLookup is indexed by the index of the Most Significant 1-Bit.
 ///
 /// It stores an `AttackDirections` (alias for `Vec<BitBoard>`).
 ///     For pieces that always move the same way (like Delta Pieces), only the first slot of this AttackDirections is used, because there's no directions.
 ///     For slider pieces, there are different indexes for specific ray directions of it.
 
-pub type AttackLookup<T : PrimInt + Unsigned> = Vec<AttackDirections<T>>;
+pub type AttackLookup<T > = Vec<AttackDirections<T>>;
 
 /// Indexed by the piece type; find a piece's attack lookups.
-pub type PieceLookup<T : PrimInt + Unsigned> = Vec<AttackLookup<T>>;
+pub type PieceLookup<T > = Vec<AttackLookup<T>>;
 
-pub struct Board<'a, T : PrimInt + Unsigned> {
+pub struct Board<'a, T : BitInt> {
     pub game: &'a Game<T>,
     pub state: BoardState<T>,
     pub piece_map: HashMap<String, usize>,
@@ -33,14 +32,14 @@ pub struct Board<'a, T : PrimInt + Unsigned> {
     pub history: Vec<Action>
 }
 
-pub struct Game<T : PrimInt + Unsigned> {
+pub struct Game<T : BitInt> {
     pub processor: Box<dyn GameProcessor<T>>,
     pub pieces: Vec<Piece<T>>,
     pub bounds: Bounds,
     pub default_pos: String
 }
 
-impl<T : PrimInt + Unsigned> Game<T> {
+impl<T : BitInt> Game<T> {
     pub fn init(&self) -> Board<T> {
         Board::new(self)
     }
@@ -57,7 +56,7 @@ impl<T : PrimInt + Unsigned> Game<T> {
 }
 
 pub trait GameTemplate {
-    fn create<T : PrimInt + Unsigned>() -> Game<T>;
+    fn create<T : BitInt>() -> Game<T>;
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -68,7 +67,7 @@ pub enum GameState {
 }
 
 /// `GameProcessor` handles managing game specific processing.
-pub trait GameProcessor<T : PrimInt + Unsigned> {
+pub trait GameProcessor<T : BitInt> {
     fn is_legal(&self, board: &mut Board<T>) -> bool;
     fn load(&self, board: &mut Board<T>, pos: &str);
 
@@ -91,7 +90,7 @@ impl Team {
 }
 
 #[derive(Debug, Clone)]
-pub struct BoardState<T : PrimInt + Unsigned> {
+pub struct BoardState<T : BitInt> {
     pub moving_team: Team,
 
     // Pieces which haven't moved are set as `first_move`
@@ -106,7 +105,7 @@ pub struct BoardState<T : PrimInt + Unsigned> {
     pub pieces: Vec<BitBoard<T>>
 }
 
-impl<T : PrimInt + Unsigned> BoardState<T> {
+impl<T : BitInt> BoardState<T> {
     pub fn new() -> Self {
         Self {
             moving_team: Team::White,
@@ -133,7 +132,7 @@ impl<T : PrimInt + Unsigned> BoardState<T> {
     }
 }
 
-impl<'a, T : PrimInt + Unsigned> Board<'a, T> {
+impl<'a, T : BitInt> Board<'a, T> {
     pub fn new(game: &'a Game<T>) -> Self {
         Self {
             game,

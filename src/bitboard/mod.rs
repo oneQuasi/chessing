@@ -1,9 +1,14 @@
-use num_traits::{PrimInt, Unsigned};
+use num::{PrimInt, Unsigned};
 
-pub type DefaultIntType = u128;
+pub trait BitInt:
+    PrimInt + Unsigned {}
+
+impl<T> BitInt for T where
+    T: PrimInt + Unsigned
+{}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct BitBoard<T: PrimInt + Unsigned>(pub T);
+pub struct BitBoard<T: BitInt>(pub T);
 
 #[derive(Clone, Copy, Debug)]
 pub struct Bounds {
@@ -12,7 +17,7 @@ pub struct Bounds {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct Edges<T: PrimInt + Unsigned> {
+pub struct Edges<T: BitInt> {
     pub right: BitBoard<T>,
     pub left: BitBoard<T>,
     pub top: BitBoard<T>,
@@ -20,15 +25,15 @@ pub struct Edges<T: PrimInt + Unsigned> {
     pub all: BitBoard<T>,
 }
 
-pub struct BitPositions<T: PrimInt + Unsigned>(T);
+pub struct BitPositions<T: BitInt>(T);
 
-impl<T: PrimInt + Unsigned> BitPositions<T> {
+impl<T: BitInt> BitPositions<T> {
     pub fn new(bits: T) -> Self {
         BitPositions(bits)
     }
 }
 
-impl<T: PrimInt + Unsigned> Iterator for BitPositions<T> {
+impl<T: BitInt> Iterator for BitPositions<T> {
     type Item = u32;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -48,7 +53,7 @@ impl Bounds {
     }
 }
 
-impl<T: PrimInt + Unsigned> BitBoard<T> {
+impl<T: BitInt> BitBoard<T> {
     pub fn or(self, board: BitBoard<T>) -> BitBoard<T> {
         BitBoard(self.0 | board.0)
     }

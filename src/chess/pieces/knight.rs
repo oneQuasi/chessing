@@ -1,10 +1,9 @@
-use num::{PrimInt, Unsigned};
 
-use crate::{bitboard::BitBoard, game::{action::{make_chess_move, Action, HistoryState}, piece::{Piece, PieceProcessor}, Board, Team}};
+use crate::{bitboard::{BitBoard, BitInt}, game::{action::{make_chess_move, Action, HistoryState}, piece::{Piece, PieceProcessor}, Board}};
 
 pub struct KnightProcess;
 
-impl<T : PrimInt + Unsigned> PieceProcessor<T> for KnightProcess {
+impl<T : BitInt> PieceProcessor<T> for KnightProcess {
     fn process(&self, board: &mut Board<T>, piece_index: usize) {
         let edges = board.edges[0];
         let deep_edges = board.edges[1];
@@ -29,7 +28,7 @@ impl<T : PrimInt + Unsigned> PieceProcessor<T> for KnightProcess {
         }
     }
     
-    fn capture_mask(&self, board: &mut Board<T>, piece_index: usize, mask: BitBoard<T>) -> BitBoard<T> {
+    fn capture_mask(&self, board: &mut Board<T>, piece_index: usize, _: BitBoard<T>) -> BitBoard<T> {
         let mut mask = BitBoard::empty();
         let moving_team = board.state.team_to_move();
         for knight in board.state.pieces[piece_index].and(moving_team).iter() {
@@ -59,6 +58,6 @@ impl<T : PrimInt + Unsigned> PieceProcessor<T> for KnightProcess {
     }
 }
 
-pub fn create_knight<T : PrimInt + Unsigned>() -> Piece<T> {
+pub fn create_knight<T : BitInt>() -> Piece<T> {
     Piece::new("n", "knight", Box::new(KnightProcess))
 }

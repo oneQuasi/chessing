@@ -1,6 +1,5 @@
-use num::{PrimInt, Unsigned};
 
-use crate::bitboard::BitBoard;
+use crate::bitboard::{BitBoard, BitInt};
 
 use super::{Board, Team};
 
@@ -36,17 +35,17 @@ impl Action {
     }
 }
 
-pub enum HistoryUpdate<T : PrimInt + Unsigned> {
+pub enum HistoryUpdate<T : BitInt> {
     White(BitBoard<T>),
     Black(BitBoard<T>),
     FirstMove(BitBoard<T>),
     Piece(usize, BitBoard<T>)
 }
 
-pub struct HistoryState<T : PrimInt + Unsigned>(pub Vec<HistoryUpdate<T>>);
+pub struct HistoryState<T : BitInt>(pub Vec<HistoryUpdate<T>>);
 
 /// For debugging or development purposes only, restores every original BitBoard
-pub fn restore_perfectly<T : PrimInt + Unsigned>(board: &mut Board<T>) -> HistoryState<T> {
+pub fn restore_perfectly<T : BitInt>(board: &mut Board<T>) -> HistoryState<T> {
     let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(12);
 
     for piece_type in 0..board.game.pieces.len() {
@@ -63,7 +62,7 @@ pub fn restore_perfectly<T : PrimInt + Unsigned>(board: &mut Board<T>) -> Histor
 }
 
 #[inline(always)]
-pub fn make_chess_move<T : PrimInt + Unsigned>(board: &mut Board<T>, action: Action) -> HistoryState<T> {
+pub fn make_chess_move<T : BitInt>(board: &mut Board<T>, action: Action) -> HistoryState<T> {
     let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(6);
     let piece_index = action.piece_type;
     

@@ -1,8 +1,7 @@
-use num::{PrimInt, Unsigned};
 
-use crate::{bitboard::BitBoard, game::{action::{index_to_square, make_chess_move, Action, HistoryState, HistoryUpdate}, piece::{Piece, PieceProcessor}, Board, Team}};
+use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action, HistoryState, HistoryUpdate}, piece::{Piece, PieceProcessor}, Board, Team}};
 
-fn make_castling_move<T : PrimInt + Unsigned>(board: &mut Board<T>, action: Action) -> HistoryState<T> {
+fn make_castling_move<T : BitInt>(board: &mut Board<T>, action: Action) -> HistoryState<T> {
     let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(4);
 
     if board.state.moving_team == Team::White {
@@ -43,7 +42,7 @@ fn make_castling_move<T : PrimInt + Unsigned>(board: &mut Board<T>, action: Acti
 
 pub struct KingProcess;
 
-impl<T : PrimInt + Unsigned> PieceProcessor<T> for KingProcess {
+impl<T : BitInt> PieceProcessor<T> for KingProcess {
     fn process(&self, board: &mut Board<T>, piece_index: usize) {
         let edges = board.edges[0];
         board.lookup[piece_index] = vec![ vec![ ] ];
@@ -64,7 +63,7 @@ impl<T : PrimInt + Unsigned> PieceProcessor<T> for KingProcess {
         }
     }
 
-    fn capture_mask(&self, board: &mut Board<T>, piece_index: usize, mask: BitBoard<T>) -> BitBoard<T> {
+    fn capture_mask(&self, board: &mut Board<T>, piece_index: usize, _: BitBoard<T>) -> BitBoard<T> {
         let mut mask = BitBoard::empty();
         let moving_team = board.state.team_to_move();
         for king in board.state.pieces[piece_index].and(moving_team).iter() {
@@ -164,6 +163,6 @@ impl<T : PrimInt + Unsigned> PieceProcessor<T> for KingProcess {
     }
 }
 
-pub fn create_king<T : PrimInt + Unsigned>() -> Piece<T> {
+pub fn create_king<T : BitInt>() -> Piece<T> {
     Piece::new("k", "king", Box::new(KingProcess))
 }

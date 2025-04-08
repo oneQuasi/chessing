@@ -1,13 +1,12 @@
-use num::{PrimInt, Unsigned};
 
-use crate::{bitboard::BitBoard, game::Board};
+use crate::{bitboard::{BitBoard, BitInt}, game::Board};
 
 pub mod bishop;
 pub mod rook;
 pub mod queen;
 
 #[inline(always)]
-pub fn ray_attacks_forward<T : PrimInt + Unsigned>(board: &mut Board<T>, pos: usize, piece_index: usize, dir: usize) -> BitBoard<T> {
+pub fn ray_attacks_forward<T : BitInt>(board: &mut Board<T>, pos: usize, piece_index: usize, dir: usize) -> BitBoard<T> {
     let ray = board.lookup[piece_index][dir][pos];
 
     let blocker = ray.and(board.state.black.or(board.state.white));
@@ -20,7 +19,7 @@ pub fn ray_attacks_forward<T : PrimInt + Unsigned>(board: &mut Board<T>, pos: us
 }
 
 #[inline(always)]
-pub fn ray_attacks_backward<T : PrimInt + Unsigned>(board: &mut Board<T>, pos: usize, piece_index: usize, dir: usize) -> BitBoard<T> {
+pub fn ray_attacks_backward<T : BitInt>(board: &mut Board<T>, pos: usize, piece_index: usize, dir: usize) -> BitBoard<T> {
     let ray = board.lookup[piece_index][dir][pos];
 
     let blocker = ray.and(board.state.black.or(board.state.white));
@@ -32,7 +31,7 @@ pub fn ray_attacks_backward<T : PrimInt + Unsigned>(board: &mut Board<T>, pos: u
     }
 }
 
-pub fn repeat<T : PrimInt + Unsigned>(mut pos: BitBoard<T>, apply: impl Fn(BitBoard<T>) -> BitBoard<T>) -> BitBoard<T> {
+pub fn repeat<T : BitInt>(mut pos: BitBoard<T>, apply: impl Fn(BitBoard<T>) -> BitBoard<T>) -> BitBoard<T> {
     let mut out = BitBoard::empty();
     loop {
         let progress = apply(pos);

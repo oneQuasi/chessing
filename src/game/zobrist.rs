@@ -1,11 +1,10 @@
-use num::{PrimInt, Unsigned};
 
-use crate::bitboard::Bounds;
+use crate::bitboard::{BitInt, Bounds};
 
 use super::{Board, Game, Team};
 
 #[inline(always)]
-fn get_index<T : PrimInt + Unsigned>(board: &Board<T>, team: Team, piece: usize, square: usize) -> usize {
+fn get_index<T : BitInt>(board: &Board<T>, team: Team, piece: usize, square: usize) -> usize {
     let teams = 2;
     let team_number: usize = if team == Team::White { 0 } else { 1 };
     
@@ -19,7 +18,7 @@ pub struct ZobristTable {
 }
 
 impl ZobristTable {
-    pub fn compute<T : PrimInt + Unsigned>(&self, board: &Board<T>) -> u64 {
+    pub fn compute<T : BitInt>(&self, board: &Board<T>) -> u64 {
         let mut hash = 0;
         for piece in 0..board.state.pieces.len() {
             for team in [board.state.moving_team, board.state.moving_team.next()] {
@@ -33,7 +32,7 @@ impl ZobristTable {
     }
 }
 
-impl<T : PrimInt + Unsigned> Game<T> {
+impl<T : BitInt> Game<T> {
     pub fn gen_table(&self, bounds: Bounds) -> ZobristTable {
         let squares = (bounds.rows * bounds.cols) as usize;
         let pieces = self.pieces.len();
@@ -52,7 +51,7 @@ impl<T : PrimInt + Unsigned> Game<T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{bitboard::Bounds, chess::{suite::CHESS_SUITE, Chess}, game::{suite::{parse_suite, test_suite}, GameTemplate}};
+    use crate::{bitboard::Bounds, chess::{suite::CHESS_SUITE, Chess}, game::{suite::parse_suite, GameTemplate}};
 
     #[test]
     fn zobrist() {

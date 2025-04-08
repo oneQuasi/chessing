@@ -7,9 +7,10 @@ fn current_time_millis() -> u128 {
         .as_millis()
 }
 
-use num::{PrimInt, Unsigned};
 
-use super::{Board, Game};
+use crate::bitboard::BitInt;
+
+use super::Game;
 
 #[derive(Debug)]
 pub struct Position {
@@ -30,7 +31,7 @@ pub fn parse_suite(positions: &str) -> Vec<Position> {
     out
 }
 
-pub fn test_suite<'a, T : PrimInt + Unsigned>(positions: &str, game: &Game<T>) {
+pub fn test_suite<'a, T : BitInt>(positions: &str, game: &Game<T>) {
     let positions = parse_suite(positions);
     let mut total_nodes = 0;
 

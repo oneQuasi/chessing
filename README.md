@@ -60,7 +60,7 @@ Implementing a Game requires processing distinct logic for pieces and games.
 ### PieceProcessor
 
 ```rs
-pub trait PieceProcessor<T : PrimInt + Unsigned> {
+pub trait PieceProcessor<T : BitInt> {
     fn process(&self, board: &mut Board<T>, piece_index: usize) {}
     
     fn list_actions(&self, board: &mut Board<T>, piece_index: usize) -> Vec<Action>;
@@ -89,7 +89,7 @@ let rook_ind = board.find_piece("rook");
 ### GameProcessor
 
 ```rs
-pub trait GameProcessor<T : PrimInt + Unsigned> {
+pub trait GameProcessor<T : BitInt> {
     fn is_legal(&self, board: &mut Board<T>) -> bool;
     fn load(&self, board: &mut Board<T>, pos: &str);
 

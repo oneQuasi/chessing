@@ -1,16 +1,15 @@
 
 
-use num::{PrimInt, Unsigned};
 use pieces::{king::create_king, knight::create_knight, pawn::create_pawn, sliders::{bishop::create_bishop, queen::create_queen, rook::create_rook}};
 
-use crate::{bitboard::{BitBoard, Bounds}, game::{action::{index_to_square, Action}, piece::{Piece, PieceProcessor}, Board, Game, GameProcessor, GameState, GameTemplate, Team}};
+use crate::{bitboard::{BitBoard, BitInt, Bounds}, game::{action::Action, Board, Game, GameProcessor, GameState, GameTemplate, Team}};
 
 pub mod pieces;
 pub mod suite;
 
 pub struct ChessProcessor;
 
-impl<T : PrimInt + Unsigned> GameProcessor<T> for ChessProcessor {
+impl<T : BitInt> GameProcessor<T> for ChessProcessor {
     fn is_legal(&self, board: &mut Board<T>) -> bool {
         let king_ind = board.find_piece("king").expect("King is required for chess");
         let king = board.state.pieces[king_ind].and(board.state.opposite_team());
@@ -83,7 +82,7 @@ impl<T : PrimInt + Unsigned> GameProcessor<T> for ChessProcessor {
 pub struct Chess;
 
 impl GameTemplate for Chess {
-    fn create<T : PrimInt + Unsigned>() -> Game<T> {
+    fn create<T : BitInt>() -> Game<T> {
         Game {
             processor: Box::new(ChessProcessor),
             pieces: vec![

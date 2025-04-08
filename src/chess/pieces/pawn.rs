@@ -1,9 +1,8 @@
-use num::{PrimInt, Unsigned};
 
-use crate::{bitboard::BitBoard, game::{action::{index_to_square, make_chess_move, restore_perfectly, Action, HistoryState, HistoryUpdate}, piece::{EmptyPieceProcessor, Piece, PieceProcessor}, Board, Team}};
+use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action, HistoryState, HistoryUpdate}, piece::{Piece, PieceProcessor}, Board, Team}};
 
 #[inline(always)]
-fn list_white_pawn_captures<T : PrimInt + Unsigned>(board: &mut Board<T>, piece_index: usize) -> BitBoard<T> {
+fn list_white_pawn_captures<T : BitInt>(board: &mut Board<T>, piece_index: usize) -> BitBoard<T> {
     let pawns = board.state.pieces[piece_index];
     let edges = board.edges[0];
 
@@ -15,7 +14,7 @@ fn list_white_pawn_captures<T : PrimInt + Unsigned>(board: &mut Board<T>, piece_
 }
 
 #[inline(always)]
-fn list_black_pawn_captures<T: PrimInt + Unsigned>(board: &mut Board<T>, piece_index: usize) -> BitBoard<T> {
+fn list_black_pawn_captures<T: BitInt>(board: &mut Board<T>, piece_index: usize) -> BitBoard<T> {
     let pawns = board.state.pieces[piece_index];
     let edges = board.edges[0];
 
@@ -27,7 +26,7 @@ fn list_black_pawn_captures<T: PrimInt + Unsigned>(board: &mut Board<T>, piece_i
 }
 
 #[inline(always)]
-fn add_white_action<T: PrimInt + Unsigned>(board: &mut Board<T>, actions: &mut Vec<Action>, action: Action) {
+fn add_white_action<T: BitInt>(board: &mut Board<T>, actions: &mut Vec<Action>, action: Action) {
     if action.to > (board.game.bounds.rows * (board.game.bounds.cols - 1)) - 1 {
         actions.push(action.with_info(2));
         actions.push(action.with_info(3));
@@ -39,7 +38,7 @@ fn add_white_action<T: PrimInt + Unsigned>(board: &mut Board<T>, actions: &mut V
 }
 
 #[inline(always)]
-fn add_black_action<T: PrimInt + Unsigned>(board: &mut Board<T>, actions: &mut Vec<Action>, action: Action) {
+fn add_black_action<T: BitInt>(board: &mut Board<T>, actions: &mut Vec<Action>, action: Action) {
     if action.to < board.game.bounds.rows {
         actions.push(action.with_info(2));
         actions.push(action.with_info(3));
@@ -51,7 +50,7 @@ fn add_black_action<T: PrimInt + Unsigned>(board: &mut Board<T>, actions: &mut V
 }
 
 #[inline(always)]
-fn list_white_pawn_actions<T: PrimInt + Unsigned>(board: &mut Board<T>, piece_index: usize) -> Vec<Action> {
+fn list_white_pawn_actions<T: BitInt>(board: &mut Board<T>, piece_index: usize) -> Vec<Action> {
     let edges = board.edges[0];
     let mut black = board.state.black;
 
@@ -100,7 +99,7 @@ fn list_white_pawn_actions<T: PrimInt + Unsigned>(board: &mut Board<T>, piece_in
 }
 
 #[inline(always)]
-fn list_black_pawn_actions<T: PrimInt + Unsigned>(board: &mut Board<T>, piece_index: usize) -> Vec<Action> {
+fn list_black_pawn_actions<T: BitInt>(board: &mut Board<T>, piece_index: usize) -> Vec<Action> {
     let edges = board.edges[0];
     let mut white = board.state.white;
 
@@ -148,7 +147,7 @@ fn list_black_pawn_actions<T: PrimInt + Unsigned>(board: &mut Board<T>, piece_in
     actions
 }
 
-fn make_en_passant_move<T: PrimInt + Unsigned>(board: &mut Board<T>, action: Action) -> HistoryState<T> {
+fn make_en_passant_move<T: BitInt>(board: &mut Board<T>, action: Action) -> HistoryState<T> {
     let is_white = board.state.moving_team == Team::White;
     let from = BitBoard::index(action.from);
     let to = BitBoard::index(action.to);
@@ -178,7 +177,7 @@ fn make_en_passant_move<T: PrimInt + Unsigned>(board: &mut Board<T>, action: Act
     HistoryState(updates)
 }
 
-fn make_promotion_move<T: PrimInt + Unsigned>(board: &mut Board<T>, action: Action) -> HistoryState<T> {
+fn make_promotion_move<T: BitInt>(board: &mut Board<T>, action: Action) -> HistoryState<T> {
     let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(5);
     let piece_index = action.piece_type;
     let promoted_piece_type = (action.info - 1) as usize;
@@ -253,7 +252,7 @@ fn make_promotion_move<T: PrimInt + Unsigned>(board: &mut Board<T>, action: Acti
 
 pub struct PawnProcess;
 
-impl<T : PrimInt + Unsigned> PieceProcessor<T> for PawnProcess {
+impl<T : BitInt> PieceProcessor<T> for PawnProcess {
     fn process(&self, board: &mut Board<T>, piece_index: usize) {
         let edges = board.edges[0];
 
@@ -273,7 +272,7 @@ impl<T : PrimInt + Unsigned> PieceProcessor<T> for PawnProcess {
         }
     }
 
-    fn capture_mask(&self, board: &mut Board<T>, piece_index: usize, mask: BitBoard<T>) -> BitBoard<T> {
+    fn capture_mask(&self, board: &mut Board<T>, piece_index: usize, _: BitBoard<T>) -> BitBoard<T> {
         if board.state.moving_team == Team::White {
             list_white_pawn_captures(board, piece_index)
         } else {
@@ -307,6 +306,6 @@ impl<T : PrimInt + Unsigned> PieceProcessor<T> for PawnProcess {
 
 }
 
-pub fn create_pawn<T : PrimInt + Unsigned>() -> Piece<T> {
+pub fn create_pawn<T : BitInt>() -> Piece<T> {
     Piece::new("p", "pawn", Box::new(PawnProcess))
 }

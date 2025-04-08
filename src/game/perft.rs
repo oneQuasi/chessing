@@ -1,8 +1,9 @@
-use num::{PrimInt, Unsigned};
+
+use crate::bitboard::BitInt;
 
 use super::Board;
 
-impl<'a, T : PrimInt + Unsigned> Board<'a, T> {
+impl<'a, T : BitInt> Board<'a, T> {
     pub fn perft(&mut self, depth: usize) -> usize {
         if depth == 0 { return 1; }
     
