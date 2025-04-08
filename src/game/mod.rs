@@ -27,6 +27,8 @@ pub struct Board<'a, T : BitInt> {
     pub game: &'a Game<T>,
     pub state: BoardState<T>,
     pub piece_map: HashMap<String, usize>,
+    /// A cache of important piece indexes guaranteed by the game processor.
+    pub required_pieces: Vec<usize>,
     pub edges: Vec<Edges<T>>,
     pub lookup: PieceLookup<T>,
     pub history: Vec<Action>
@@ -68,9 +70,8 @@ pub enum GameState {
 
 /// `GameProcessor` handles managing game specific processing.
 pub trait GameProcessor<T : BitInt> {
-    fn is_legal(&self, board: &mut Board<T>) -> bool;
     fn load(&self, board: &mut Board<T>, pos: &str);
-
+    fn is_legal(&self, board: &mut Board<T>) -> bool;
     fn game_state(&self, board: &mut Board<T>, legal_actions: &[Action]) -> GameState;
 }
 
@@ -138,6 +139,7 @@ impl<'a, T : BitInt> Board<'a, T> {
             game,
             state: BoardState::new(),
             piece_map: HashMap::default(),
+            required_pieces: vec![],
             edges: vec![
                 BitBoard::edges(game.bounds, 1),
                 BitBoard::edges(game.bounds, 2)

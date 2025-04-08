@@ -114,7 +114,7 @@ impl<T : BitInt> PieceProcessor<T> for KingProcess {
                     }
 
                     // We can castle! This move is represented as king goes to where the rook is.
-                    actions.push(Action::from(pos, rook as u8, stored_piece_index));
+                    actions.push(Action::from(pos, rook as u8, stored_piece_index).with_info(1));
                 }
             }
         }
@@ -154,11 +154,10 @@ impl<T : BitInt> PieceProcessor<T> for KingProcess {
     }
 
     fn make_move(&self, board: &mut Board<T>, action: Action) -> HistoryState<T> {
-        if BitBoard::index(action.to).and(board.state.team_to_move()).is_set() {
-            // King cannot move two tiles left or right, meaning this must be a castling move
-            make_castling_move(board, action)
-        } else {
+        if action.info == 0 {
             make_chess_move(board, action)
+        } else {
+            make_castling_move(board, action)
         }
     }
 }

@@ -11,7 +11,7 @@ pub struct ChessProcessor;
 
 impl<T : BitInt> GameProcessor<T> for ChessProcessor {
     fn is_legal(&self, board: &mut Board<T>) -> bool {
-        let king_ind = board.find_piece("king").expect("King is required for chess");
+        let king_ind = board.required_pieces[0];
         let king = board.state.pieces[king_ind].and(board.state.opposite_team());
         let mask = board.list_captures(king);
 
@@ -30,7 +30,15 @@ impl<T : BitInt> GameProcessor<T> for ChessProcessor {
         let left_side = BitBoard::edges_left(board.game.bounds, board.game.bounds.cols / 2);
         let right_side = BitBoard::edges_right(board.game.bounds, board.game.bounds.cols / 2);
 
+        let king_ind = board.find_piece("king").expect("Cannot handle castling rights w/o king");
         let rook_ind = board.find_piece("rook").expect("Cannot handle castling rights w/o rook");
+
+        board.required_pieces.push(king_ind);
+        board.required_pieces.push(rook_ind);
+
+        // If a `Game` is constructed using `ChessProcessor`, we won't know the order of `king` and `rook`.
+        // Therefore, we can't be sure those pieces are at any given index.
+        // `required_pieces` allows us to save the index of them for use in `is_legal` so that we don't need to deal with hashes.
         
         // Castling Rights
         if !parts[2].contains("K") {
