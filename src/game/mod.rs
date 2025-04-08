@@ -103,7 +103,9 @@ pub struct BoardState<T : BitInt> {
     pub white: BitBoard<T>,
     pub black: BitBoard<T>,
 
-    pub pieces: Vec<BitBoard<T>>
+    pub pieces: Vec<BitBoard<T>>,
+
+    pub mailbox: Vec<u8>
 }
 
 impl<T : BitInt> BoardState<T> {
@@ -114,6 +116,7 @@ impl<T : BitInt> BoardState<T> {
             white: BitBoard::empty(),
             first_move: BitBoard::empty(),
             pieces: vec![BitBoard::empty(); 6],
+            mailbox: vec![]
         }
     }
 
@@ -157,6 +160,10 @@ impl<'a, T : BitInt> Board<'a, T> {
     }
 
     pub fn load(&mut self, pos: &str) {
+        for _ in 0..(self.game.bounds.rows * self.game.bounds.cols) {
+            self.state.mailbox.push(0);
+        }
+
         for (index, piece) in self.game.pieces.iter().enumerate() {
             self.piece_map.insert(piece.name.clone(), index);
         }
@@ -189,6 +196,8 @@ impl<'a, T : BitInt> Board<'a, T> {
                     self.state.first_move = self.state.first_move.or(piece);
 
                     self.state.pieces[index] = self.state.pieces[index].or(piece);
+                    self.state.mailbox[piece.bitscan_forward() as usize] = index as u8 + 1;
+
                     if is_black {
                         self.state.black = self.state.black.or(piece);
                     } else {
@@ -238,11 +247,13 @@ impl<'a, T : BitInt> Board<'a, T> {
     }
 
     pub fn display_action(&mut self, action: Action) -> Vec<String> {
-        self.game.pieces[action.piece_type as usize].processor.display_action(self, action)
+        let piece_index = self.state.mailbox[action.from as usize] - 1;
+        self.game.pieces[piece_index as usize].processor.display_action(self, action)
     }
 
     pub fn display_uci_action(&mut self, action: Action) -> String {
-        self.game.pieces[action.piece_type as usize].processor.display_uci_action(self, action)
+        let piece_index = self.state.mailbox[action.from as usize] - 1;
+        self.game.pieces[piece_index as usize].processor.display_uci_action(self, action)
     }
 
     pub fn find_action(&mut self, action: &str) -> Action {
@@ -257,7 +268,8 @@ impl<'a, T : BitInt> Board<'a, T> {
     
 
     pub fn play(&mut self, action: Action) -> HistoryState<T> {
-        let state = self.game.pieces[action.piece_type as usize].processor.make_move(self, action);
+        let piece_index = self.state.mailbox[action.from as usize] - 1;
+        let state = self.game.pieces[piece_index as usize].processor.make_move(self, action);
         self.state.moving_team = self.state.moving_team.next();
 
         self.history.push(action);
@@ -269,14 +281,17 @@ impl<'a, T : BitInt> Board<'a, T> {
         self.history.pop();
         for change in state.0 {
             match change {
+                HistoryUpdate::Mailbox(index, value) => {
+                    self.state.mailbox[index as usize] = value;
+                }
+                HistoryUpdate::Piece(index, board) => {
+                    self.state.pieces[index as usize] = board;
+                }
                 HistoryUpdate::White(board) => {
                     self.state.white = board;
                 }
                 HistoryUpdate::Black(board) => {
                     self.state.black = board;
-                }
-                HistoryUpdate::Piece(index, board) => {
-                    self.state.pieces[index as usize] = board;
                 }
                 HistoryUpdate::FirstMove(board) => {
                     self.state.first_move = board;

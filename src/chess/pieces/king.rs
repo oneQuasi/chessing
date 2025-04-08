@@ -1,7 +1,9 @@
-use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action, HistoryState, HistoryUpdate}, piece::{Piece, PieceProcessor}, Board, Team}};
+use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action, HistoryState, HistoryUpdate, HistoryUpdate::Mailbox}, piece::{Piece, PieceProcessor}, Board, Team}};
 
 fn make_castling_move<T : BitInt>(board: &mut Board<T>, action: Action) -> HistoryState<T> {
-    let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(6);
+    let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(8);
+    
+    let piece_index = board.state.mailbox[action.from as usize] - 1;
 
     if board.state.moving_team == Team::White {
         updates.push(HistoryUpdate::White(board.state.white));
@@ -9,7 +11,7 @@ fn make_castling_move<T : BitInt>(board: &mut Board<T>, action: Action) -> Histo
         updates.push(HistoryUpdate::Black(board.state.black));
     }
 
-    updates.push(HistoryUpdate::Piece(action.piece_type, board.state.pieces[action.piece_type as usize]));
+    updates.push(HistoryUpdate::Piece(piece_index, board.state.pieces[piece_index as usize]));
 
     let rook_ind = board.find_piece("rook").expect("Cannot castle w/o rook");
     updates.push(HistoryUpdate::Piece(rook_ind as u8, board.state.pieces[rook_ind]));
@@ -22,12 +24,17 @@ fn make_castling_move<T : BitInt>(board: &mut Board<T>, action: Action) -> Histo
         (action.from - 2, action.from - 1)
     };
 
+    updates.push(HistoryUpdate::Mailbox(action.from, piece_index + 1));
+    updates.push(HistoryUpdate::Mailbox(action.to, rook_ind as u8 + 1));
+    updates.push(HistoryUpdate::Mailbox(relocated_king, 0));
+    updates.push(HistoryUpdate::Mailbox(relocated_rook, 0));
+
     let king = BitBoard::index(action.from);
     let rook = BitBoard::index(action.to);
     let king_relocated = BitBoard::index(relocated_king);
     let rook_relocated = BitBoard::index(relocated_rook);
 
-    board.state.pieces[action.piece_type as usize] = board.state.pieces[action.piece_type as usize].xor(king).or(king_relocated);
+    board.state.pieces[piece_index as usize] = board.state.pieces[piece_index as usize].xor(king).or(king_relocated);
     board.state.pieces[rook_ind] = board.state.pieces[rook_ind].xor(rook).or(rook_relocated);
     
     if board.state.moving_team == Team::White {
@@ -35,6 +42,11 @@ fn make_castling_move<T : BitInt>(board: &mut Board<T>, action: Action) -> Histo
     } else {
         board.state.black = board.state.black.xor(king).xor(rook).or(king_relocated).or(rook_relocated);
     }
+
+    board.state.mailbox[action.from as usize] = 0;
+    board.state.mailbox[action.to as usize] = 0;
+    board.state.mailbox[relocated_king as usize] = piece_index + 1;
+    board.state.mailbox[relocated_rook as usize] = rook_ind as u8 + 1;
 
     HistoryState(updates)
 }
@@ -74,13 +86,12 @@ impl<T : BitInt> PieceProcessor<T> for KingProcess {
     fn list_actions(&self, board: &mut Board<T>, piece_index: usize) -> Vec<Action> {
         let moving_team = board.state.team_to_move();
         let mut actions: Vec<Action> = Vec::with_capacity(8);
-        let stored_piece_index = piece_index as u8;
 
         for king in board.state.pieces[piece_index].and(moving_team).iter() {
             let pos = king as u8;
             let moves = board.lookup[piece_index][0][king as usize].and_not(moving_team);
             for movement in moves.iter() {
-                actions.push(Action::from(pos, movement as u8, stored_piece_index))
+                actions.push(Action::from(pos, movement as u8))
             }
 
             // Castling: Rook is required
@@ -114,7 +125,7 @@ impl<T : BitInt> PieceProcessor<T> for KingProcess {
                     }
 
                     // We can castle! This move is represented as king goes to where the rook is.
-                    actions.push(Action::from(pos, rook as u8, stored_piece_index).with_info(1));
+                    actions.push(Action::from(pos, rook as u8).with_info(1));
                 }
             }
         }

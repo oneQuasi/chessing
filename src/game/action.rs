@@ -6,8 +6,7 @@ use super::{Board, Team};
 pub struct Action {
     pub from: u8,
     pub to: u8,
-    pub info: u8,
-    pub piece_type: u8
+    pub info: u8
 }
 
 pub fn index_to_square(index: u8) -> String {
@@ -25,12 +24,12 @@ pub fn index_to_square(index: u8) -> String {
 }
 
 impl Action {
-    pub fn from(from: u8, to: u8, piece_type: u8) -> Action {
-        Action { from, to, info: 0, piece_type }
+    pub fn from(from: u8, to: u8) -> Action {
+        Action { from, to, info: 0 }
     }
 
     pub fn with_info(self, info: u8) -> Action {
-        Action { from: self.from, to: self.to, info, piece_type: self.piece_type }
+        Action { from: self.from, to: self.to, info }
     }
 }
 
@@ -38,39 +37,27 @@ pub enum HistoryUpdate<T : BitInt> {
     White(BitBoard<T>),
     Black(BitBoard<T>),
     FirstMove(BitBoard<T>),
-    Piece(u8, BitBoard<T>)
+    Piece(u8, BitBoard<T>),
+    Mailbox(u8, u8)
 }
 
-pub struct HistoryState<T : BitInt>(pub Vec<HistoryUpdate<T>>);
 
-/// For debugging or development purposes only, restores every original BitBoard
-pub fn restore_perfectly<T : BitInt>(board: &mut Board<T>) -> HistoryState<T> {
-    let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(12);
-
-    for piece_type in 0..board.game.pieces.len() as u8 {
-        updates.push(HistoryUpdate::Piece(piece_type, board.state.pieces[piece_type as usize]));
-    }
-
-    updates.push(HistoryUpdate::White(board.state.white));
-    updates.push(HistoryUpdate::Black(board.state.black));
-
-    updates.push(HistoryUpdate::FirstMove(board.state.first_move));
-
-    HistoryState(updates)
-
-}
+pub struct HistoryState<T : BitInt> (pub Vec<HistoryUpdate<T>>);
 
 #[inline(always)]
 pub fn make_chess_move<T : BitInt>(board: &mut Board<T>, action: Action) -> HistoryState<T> {
-    let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(6);
-    let piece_index = action.piece_type;
+    let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(8);
+    let piece_index = board.state.mailbox[action.from as usize] - 1;
+    let mailbox = board.state.mailbox[action.to as usize];
+
+    updates.push(HistoryUpdate::Mailbox(action.from, piece_index + 1));
+    updates.push(HistoryUpdate::Mailbox(action.to, mailbox));
     
     let from = BitBoard::index(action.from.into());
     let to = BitBoard::index(action.to.into());
 
     let is_white = board.state.moving_team == Team::White;
-    let opp_team = board.state.opposite_team();
-    let is_capture = to.and(opp_team).is_set();
+    let is_capture = mailbox > 0;
 
     // Save the moved piece's old state
     let piece = board.state.pieces[piece_index as usize];
@@ -80,18 +67,14 @@ pub fn make_chess_move<T : BitInt>(board: &mut Board<T>, action: Action) -> Hist
     let black = board.state.black;
 
     if is_capture {
-        // Remove the captured piece type from its bitboard
-        for piece_type in 0..board.game.pieces.len() as u8 {
-            let piece = board.state.pieces[piece_type as usize];
-            if piece.and(to).is_set() {
-                let same_piece_type = piece_type == piece_index;
-                if !same_piece_type {
-                    updates.push(HistoryUpdate::Piece(piece_type, piece));
-                    board.state.pieces[piece_type as usize] = piece.xor(to);
-                }
+        let piece_type = mailbox - 1;
 
-                break;
-            }
+        // Remove the captured piece type from its bitboard
+        let piece = board.state.pieces[piece_type as usize];
+        let same_piece_type = piece_type == piece_index;
+        if !same_piece_type {
+            updates.push(HistoryUpdate::Piece(piece_type, piece));
+            board.state.pieces[piece_type as usize] = piece.xor(to);
         }
 
         // Remove the captured piece from the opposite team's bitboard
@@ -106,6 +89,9 @@ pub fn make_chess_move<T : BitInt>(board: &mut Board<T>, action: Action) -> Hist
 
     // Update the moved piece's piece bitboard
     board.state.pieces[piece_index as usize] = piece.xor(from).or(to);
+
+    board.state.mailbox[action.from as usize] = 0;
+    board.state.mailbox[action.to as usize] = piece_index + 1;
 
     // Update the moved piece's team bitboard
     if is_white {

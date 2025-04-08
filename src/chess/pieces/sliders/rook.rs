@@ -61,7 +61,6 @@ impl<T: BitInt> PieceProcessor<T> for RookProcess {
     fn list_actions(&self, board: &mut Board<T>, piece_index: usize) -> Vec<Action> {
         let moving_team = board.state.team_to_move();
         let mut actions: Vec<Action> = Vec::with_capacity(4);
-        let stored_piece_index = piece_index as u8;
 
         for rook in board.state.pieces[piece_index].and(moving_team).iter() {
             let pos = rook as usize;
@@ -74,7 +73,7 @@ impl<T: BitInt> PieceProcessor<T> for RookProcess {
 
             let moves = up.or(down).or(right).or(left).and_not(moving_team);
             for movement in moves.iter() {
-                actions.push(Action::from(stored_pos, movement as u8, stored_piece_index))
+                actions.push(Action::from(stored_pos, movement as u8))
             }
         }
 

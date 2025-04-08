@@ -1,4 +1,4 @@
-use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action, HistoryState, HistoryUpdate}, piece::{Piece, PieceProcessor}, Board, Team}};
+use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action, HistoryState, HistoryUpdate::{self, Mailbox}}, piece::{self, Piece, PieceProcessor}, Board, Team}};
 
 #[inline(always)]
 fn list_white_pawn_captures<T : BitInt>(board: &mut Board<T>, piece_index: usize) -> BitBoard<T> {
@@ -74,27 +74,27 @@ fn list_white_pawn_actions<T: BitInt>(board: &mut Board<T>, piece_index: usize) 
     let right_captures = possible_right_captures.and(black);
 
     let mut actions: Vec<Action> = Vec::with_capacity(pawns.count() as usize);
-    let stored_piece_index = piece_index as u8;
 
     for movement in moves.iter() {
         let movement = movement as u8;
-        add_white_action(board, &mut actions, Action::from(movement - 8, movement, stored_piece_index));
+        add_white_action(board, &mut actions, Action::from(movement - 8, movement));
     }
     for movement in first_moves.iter() {
         let movement = movement as u8;
-        add_white_action(board, &mut actions, Action::from(movement - 16, movement, stored_piece_index));
+        add_white_action(board, &mut actions, Action::from(movement - 16, movement));
     }
     for movement in left_captures.iter() {
         let movement = movement as u8;
-        add_white_action(board, &mut actions, Action::from(movement - 8 + 1, movement, stored_piece_index));
+        add_white_action(board, &mut actions, Action::from(movement - 8 + 1, movement));
     }
     for movement in right_captures.iter() {
         let movement = movement as u8;
-        add_white_action(board, &mut actions, Action::from(movement - 8 - 1, movement, stored_piece_index));
+        add_white_action(board, &mut actions, Action::from(movement - 8 - 1, movement));
     }
 
     if let Some(last_move) = board.history.last() {
-        let was_pawn_move = last_move.piece_type == piece_index as u8;
+        let last_piece_index = board.state.mailbox[last_move.to as usize] - 1;
+        let was_pawn_move = last_piece_index == piece_index as u8;
 
         if was_pawn_move {
             let was_double_move = last_move.to.abs_diff(last_move.from) == 16;
@@ -102,11 +102,11 @@ fn list_white_pawn_actions<T: BitInt>(board: &mut Board<T>, piece_index: usize) 
                 let capture = last_move.from - 8;
                 let target = BitBoard::<T>::index(capture.into());
                 if possible_left_captures.and(target).is_set() {
-                    add_white_action(board, &mut actions, Action::from(capture - 8 + 1, capture, stored_piece_index).with_info(1));
+                    add_white_action(board, &mut actions, Action::from(capture - 8 + 1, capture).with_info(1));
                 }
 
                 if possible_right_captures.and(target).is_set() {
-                    add_white_action(board, &mut actions, Action::from(capture - 8 - 1, capture, stored_piece_index).with_info(1));
+                    add_white_action(board, &mut actions, Action::from(capture - 8 - 1, capture).with_info(1));
                 }
             }
         }
@@ -141,27 +141,27 @@ fn list_black_pawn_actions<T: BitInt>(board: &mut Board<T>, piece_index: usize) 
     let right_captures = possible_right_captures.and(white);
 
     let mut actions: Vec<Action> = Vec::with_capacity(pawns.count() as usize);
-    let stored_piece_index = piece_index as u8;
 
     for movement in moves.iter() {
         let movement = movement as u8;
-        add_black_action(board, &mut actions, Action::from(movement + 8, movement, stored_piece_index));
+        add_black_action(board, &mut actions, Action::from(movement + 8, movement));
     }
     for movement in first_moves.iter() {
         let movement = movement as u8;
-        add_black_action(board, &mut actions, Action::from(movement + 16, movement, stored_piece_index));
+        add_black_action(board, &mut actions, Action::from(movement + 16, movement));
     }
     for movement in left_captures.iter() {
         let movement = movement as u8;
-        add_black_action(board, &mut actions, Action::from(movement + 8 + 1, movement, stored_piece_index));
+        add_black_action(board, &mut actions, Action::from(movement + 8 + 1, movement));
     }
     for movement in right_captures.iter() {
         let movement = movement as u8;
-        add_black_action(board, &mut actions, Action::from(movement + 8 - 1, movement, stored_piece_index));
+        add_black_action(board, &mut actions, Action::from(movement + 8 - 1, movement));
     }
 
     if let Some(last_move) = board.history.last() {
-        let was_pawn_move = last_move.piece_type == piece_index as u8;
+        let last_piece_index = board.state.mailbox[last_move.to as usize] - 1;
+        let was_pawn_move = last_piece_index == piece_index as u8;
 
         if was_pawn_move {
             let was_double_move = last_move.to.abs_diff(last_move.from) == 16;
@@ -169,11 +169,11 @@ fn list_black_pawn_actions<T: BitInt>(board: &mut Board<T>, piece_index: usize) 
                 let capture = last_move.from + 8;
                 let target = BitBoard::<T>::index(capture.into());
                 if possible_left_captures.and(target).is_set() {
-                    add_black_action(board, &mut actions, Action::from(capture + 8 + 1, capture, stored_piece_index).with_info(1));
+                    add_black_action(board, &mut actions, Action::from(capture + 8 + 1, capture).with_info(1));
                 }
 
                 if possible_right_captures.and(target).is_set() {
-                    add_black_action(board, &mut actions, Action::from(capture + 8 - 1, capture, stored_piece_index).with_info(1));
+                    add_black_action(board, &mut actions, Action::from(capture + 8 - 1, capture).with_info(1));
                 }
             }
         }
@@ -191,11 +191,17 @@ fn make_en_passant_move<T: BitInt>(board: &mut Board<T>, action: Action) -> Hist
     let taken_pos = if is_white { action.to - 8 } else { action.to + 8 };
     let taken = BitBoard::index(taken_pos);
 
-    let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(6);
+    let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(8);
+
+    let piece_index = board.state.mailbox[action.from as usize] - 1;
+
+    updates.push(HistoryUpdate::Mailbox(action.from, piece_index + 1));
+    updates.push(HistoryUpdate::Mailbox(taken_pos, piece_index + 1));
+    updates.push(HistoryUpdate::Mailbox(action.to, 0));
 
     updates.push(HistoryUpdate::Black(board.state.black));
     updates.push(HistoryUpdate::White(board.state.white));
-    updates.push(HistoryUpdate::Piece(action.piece_type, board.state.pieces[action.piece_type as usize]));
+    updates.push(HistoryUpdate::Piece(piece_index, board.state.pieces[piece_index as usize]));
     updates.push(HistoryUpdate::FirstMove(board.state.first_move));
 
     if is_white {
@@ -205,17 +211,24 @@ fn make_en_passant_move<T: BitInt>(board: &mut Board<T>, action: Action) -> Hist
         board.state.black = board.state.black.xor(from).or(to);
         board.state.white = board.state.white.xor(taken);
     }
+    board.state.mailbox[action.from as usize] = 0;
+    board.state.mailbox[taken_pos as usize] = 0;
+    board.state.mailbox[action.to as usize] = piece_index + 1;
 
-    board.state.pieces[action.piece_type as usize] = board.state.pieces[action.piece_type as usize].xor(from).xor(taken).or(to);
+    board.state.pieces[piece_index as usize] = board.state.pieces[piece_index as usize].xor(from).xor(taken).or(to);
     board.state.first_move = board.state.first_move.xor(from).xor(taken);
 
     HistoryState(updates)
 }
 
 fn make_promotion_move<T: BitInt>(board: &mut Board<T>, action: Action) -> HistoryState<T> {
-    let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(6);
-    let piece_index = action.piece_type;
+    let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(8);
+    let piece_index = board.state.mailbox[action.from as usize] - 1;
     let promoted_piece_type = action.info - 2;
+    let mailbox = board.state.mailbox[action.to as usize];
+
+    updates.push(HistoryUpdate::Mailbox(action.from, piece_index + 1));
+    updates.push(HistoryUpdate::Mailbox(action.to, board.state.mailbox[action.to as usize]));
 
     let pawns = board.state.pieces[piece_index as usize];
 
@@ -223,8 +236,7 @@ fn make_promotion_move<T: BitInt>(board: &mut Board<T>, action: Action) -> Histo
     let to = BitBoard::index(action.to);
 
     let is_white = board.state.moving_team == Team::White;
-    let opp_team = board.state.opposite_team();
-    let is_capture = to.and(opp_team).is_set();
+    let is_capture = mailbox > 0;
 
     // Save the moved piece's old state
     updates.push(HistoryUpdate::Piece(piece_index, pawns));
@@ -239,17 +251,14 @@ fn make_promotion_move<T: BitInt>(board: &mut Board<T>, action: Action) -> Histo
     }
 
     if is_capture {
-        // Remove the captured piece type from its bitboard
-        for piece_type in 0..board.game.pieces.len() as u8 {
-            if board.state.pieces[piece_type as usize].and(to).is_set() {
-                let same_piece_type = piece_type == piece_index;
-                if !same_piece_type {
-                    updates.push(HistoryUpdate::Piece(piece_type, board.state.pieces[piece_type as usize]));
-                    board.state.pieces[piece_type as usize] = board.state.pieces[piece_type as usize].xor(to);
-                }
+        let piece_type = mailbox - 1;
 
-                break;
-            }
+        // Remove the captured piece type from its bitboard
+        let piece = board.state.pieces[piece_type as usize];
+        let same_piece_type = piece_type == piece_index;
+        if !same_piece_type {
+            updates.push(HistoryUpdate::Piece(piece_type, piece));
+            board.state.pieces[piece_type as usize] = piece.xor(to);
         }
 
         if is_white {
@@ -280,6 +289,9 @@ fn make_promotion_move<T: BitInt>(board: &mut Board<T>, action: Action) -> Histo
         updates.push(HistoryUpdate::FirstMove(board.state.first_move));
         board.state.first_move = first_move;
     }
+
+    board.state.mailbox[action.from as usize] = 0;
+    board.state.mailbox[action.to as usize] = promoted_piece_type + 1;
 
     HistoryState(updates)
 }
