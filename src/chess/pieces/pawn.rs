@@ -1,4 +1,3 @@
-
 use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action, HistoryState, HistoryUpdate}, piece::{Piece, PieceProcessor}, Board, Team}};
 
 #[inline(always)]
@@ -192,11 +191,11 @@ fn make_en_passant_move<T: BitInt>(board: &mut Board<T>, action: Action) -> Hist
     let taken_pos = if is_white { action.to - 8 } else { action.to + 8 };
     let taken = BitBoard::index(taken_pos);
 
-    let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(4);
+    let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(6);
 
     updates.push(HistoryUpdate::Black(board.state.black));
     updates.push(HistoryUpdate::White(board.state.white));
-    updates.push(HistoryUpdate::Piece(action.piece_type as usize, board.state.pieces[action.piece_type as usize]));
+    updates.push(HistoryUpdate::Piece(action.piece_type, board.state.pieces[action.piece_type as usize]));
     updates.push(HistoryUpdate::FirstMove(board.state.first_move));
 
     if is_white {
@@ -214,9 +213,9 @@ fn make_en_passant_move<T: BitInt>(board: &mut Board<T>, action: Action) -> Hist
 }
 
 fn make_promotion_move<T: BitInt>(board: &mut Board<T>, action: Action) -> HistoryState<T> {
-    let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(5);
+    let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(6);
     let piece_index = action.piece_type;
-    let promoted_piece_type = (action.info - 2) as usize;
+    let promoted_piece_type = action.info - 2;
 
     let pawns = board.state.pieces[piece_index as usize];
 
@@ -228,10 +227,10 @@ fn make_promotion_move<T: BitInt>(board: &mut Board<T>, action: Action) -> Histo
     let is_capture = to.and(opp_team).is_set();
 
     // Save the moved piece's old state
-    updates.push(HistoryUpdate::Piece(piece_index as usize, pawns));
+    updates.push(HistoryUpdate::Piece(piece_index, pawns));
 
     // Add the promotion type's old state
-    updates.push(HistoryUpdate::Piece(promoted_piece_type, board.state.pieces[promoted_piece_type]));
+    updates.push(HistoryUpdate::Piece(promoted_piece_type, board.state.pieces[promoted_piece_type as usize]));
 
     if is_white {
         updates.push(HistoryUpdate::White(board.state.white));
@@ -241,12 +240,12 @@ fn make_promotion_move<T: BitInt>(board: &mut Board<T>, action: Action) -> Histo
 
     if is_capture {
         // Remove the captured piece type from its bitboard
-        for piece_type in 0..board.game.pieces.len() {
-            if board.state.pieces[piece_type].and(to).is_set() {
-                let same_piece_type = piece_type == piece_index.into();
+        for piece_type in 0..board.game.pieces.len() as u8 {
+            if board.state.pieces[piece_type as usize].and(to).is_set() {
+                let same_piece_type = piece_type == piece_index;
                 if !same_piece_type {
-                    updates.push(HistoryUpdate::Piece(piece_type, board.state.pieces[piece_type]));
-                    board.state.pieces[piece_type] = board.state.pieces[piece_type].xor(to);
+                    updates.push(HistoryUpdate::Piece(piece_type, board.state.pieces[piece_type as usize]));
+                    board.state.pieces[piece_type as usize] = board.state.pieces[piece_type as usize].xor(to);
                 }
 
                 break;
@@ -266,7 +265,7 @@ fn make_promotion_move<T: BitInt>(board: &mut Board<T>, action: Action) -> Histo
     board.state.pieces[piece_index as usize] = pawns.xor(from);
 
     // Add the new piece where the pawn left.
-    board.state.pieces[promoted_piece_type] = board.state.pieces[promoted_piece_type].or(to);
+    board.state.pieces[promoted_piece_type as usize] = board.state.pieces[promoted_piece_type as usize].or(to);
 
     // Update the moved piece's team bitboard
     if is_white {

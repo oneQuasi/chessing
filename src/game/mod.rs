@@ -274,7 +274,7 @@ impl<'a, T : BitInt> Board<'a, T> {
                     self.state.black = board;
                 }
                 HistoryUpdate::Piece(index, board) => {
-                    self.state.pieces[index] = board;
+                    self.state.pieces[index as usize] = board;
                 }
                 HistoryUpdate::FirstMove(board) => {
                     self.state.first_move = board;

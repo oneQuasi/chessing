@@ -1,8 +1,7 @@
-
 use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action, HistoryState, HistoryUpdate}, piece::{Piece, PieceProcessor}, Board, Team}};
 
 fn make_castling_move<T : BitInt>(board: &mut Board<T>, action: Action) -> HistoryState<T> {
-    let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(4);
+    let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(6);
 
     if board.state.moving_team == Team::White {
         updates.push(HistoryUpdate::White(board.state.white));
@@ -10,10 +9,10 @@ fn make_castling_move<T : BitInt>(board: &mut Board<T>, action: Action) -> Histo
         updates.push(HistoryUpdate::Black(board.state.black));
     }
 
-    updates.push(HistoryUpdate::Piece(action.piece_type as usize, board.state.pieces[action.piece_type as usize]));
+    updates.push(HistoryUpdate::Piece(action.piece_type, board.state.pieces[action.piece_type as usize]));
 
     let rook_ind = board.find_piece("rook").expect("Cannot castle w/o rook");
-    updates.push(HistoryUpdate::Piece(3, board.state.pieces[rook_ind]));
+    updates.push(HistoryUpdate::Piece(rook_ind as u8, board.state.pieces[rook_ind]));
 
     // This isn't Fischer-Random compatible yet.
 

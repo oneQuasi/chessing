@@ -1,4 +1,3 @@
-
 use crate::bitboard::{BitBoard, BitInt};
 
 use super::{Board, Team};
@@ -39,7 +38,7 @@ pub enum HistoryUpdate<T : BitInt> {
     White(BitBoard<T>),
     Black(BitBoard<T>),
     FirstMove(BitBoard<T>),
-    Piece(usize, BitBoard<T>)
+    Piece(u8, BitBoard<T>)
 }
 
 pub struct HistoryState<T : BitInt>(pub Vec<HistoryUpdate<T>>);
@@ -48,8 +47,8 @@ pub struct HistoryState<T : BitInt>(pub Vec<HistoryUpdate<T>>);
 pub fn restore_perfectly<T : BitInt>(board: &mut Board<T>) -> HistoryState<T> {
     let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(12);
 
-    for piece_type in 0..board.game.pieces.len() {
-        updates.push(HistoryUpdate::Piece(piece_type, board.state.pieces[piece_type]));
+    for piece_type in 0..board.game.pieces.len() as u8 {
+        updates.push(HistoryUpdate::Piece(piece_type, board.state.pieces[piece_type as usize]));
     }
 
     updates.push(HistoryUpdate::White(board.state.white));
@@ -75,20 +74,20 @@ pub fn make_chess_move<T : BitInt>(board: &mut Board<T>, action: Action) -> Hist
 
     // Save the moved piece's old state
     let piece = board.state.pieces[piece_index as usize];
-    updates.push(HistoryUpdate::Piece(piece_index as usize, piece));
+    updates.push(HistoryUpdate::Piece(piece_index, piece));
 
     let white = board.state.white;
     let black = board.state.black;
 
     if is_capture {
         // Remove the captured piece type from its bitboard
-        for piece_type in 0..board.game.pieces.len() {
-            let piece = board.state.pieces[piece_type];
+        for piece_type in 0..board.game.pieces.len() as u8 {
+            let piece = board.state.pieces[piece_type as usize];
             if piece.and(to).is_set() {
-                let same_piece_type = piece_type == piece_index.into();
+                let same_piece_type = piece_type == piece_index;
                 if !same_piece_type {
                     updates.push(HistoryUpdate::Piece(piece_type, piece));
-                    board.state.pieces[piece_type] = piece.xor(to);
+                    board.state.pieces[piece_type as usize] = piece.xor(to);
                 }
 
                 break;
@@ -117,10 +116,9 @@ pub fn make_chess_move<T : BitInt>(board: &mut Board<T>, action: Action) -> Hist
         board.state.black = black.xor(from).or(to);
     }
 
-    let first_move = board.state.first_move.and_not(from.or(to));
-    if first_move != board.state.first_move {
+    if board.state.first_move.and(from.or(to)).is_set() {
         updates.push(HistoryUpdate::FirstMove(board.state.first_move));
-        board.state.first_move = first_move;
+        board.state.first_move = board.state.first_move.and_not(from.or(to));
     }
 
     HistoryState(updates)
