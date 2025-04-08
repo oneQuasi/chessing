@@ -1,4 +1,4 @@
-use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action, HistoryState, HistoryUpdate::{self, Mailbox}}, piece::{self, Piece, PieceProcessor}, Board, Team}};
+use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action, HistoryState, HistoryUpdate::{self, Mailbox}}, piece::{self, Piece, PieceProcessor}, Board, BoardState, Team}};
 
 #[inline(always)]
 fn list_white_pawn_captures<T : BitInt>(board: &mut Board<T>, piece_index: usize) -> BitBoard<T> {
@@ -92,7 +92,7 @@ fn list_white_pawn_actions<T: BitInt>(board: &mut Board<T>, piece_index: usize) 
         add_white_action(board, &mut actions, Action::from(movement - 8 - 1, movement));
     }
 
-    if let Some(last_move) = board.history.last() {
+    if let Some(last_move) = board.state.history.last() {
         let last_piece_index = board.state.mailbox[last_move.to as usize] - 1;
         let was_pawn_move = last_piece_index == piece_index as u8;
 
@@ -159,7 +159,7 @@ fn list_black_pawn_actions<T: BitInt>(board: &mut Board<T>, piece_index: usize) 
         add_black_action(board, &mut actions, Action::from(movement + 8 - 1, movement));
     }
 
-    if let Some(last_move) = board.history.last() {
+    if let Some(last_move) = board.state.history.last() {
         let last_piece_index = board.state.mailbox[last_move.to as usize] - 1;
         let was_pawn_move = last_piece_index == piece_index as u8;
 
@@ -182,116 +182,133 @@ fn list_black_pawn_actions<T: BitInt>(board: &mut Board<T>, piece_index: usize) 
     actions
 }
 
-fn make_en_passant_move<T: BitInt>(board: &mut Board<T>, action: Action) -> HistoryState<T> {
-    let is_white = board.state.moving_team == Team::White;
+fn make_en_passant_move<T: BitInt>(state: &mut BoardState<T>, action: Action) -> HistoryState<T> {
+    let team = state.moving_team;
     let from = BitBoard::index(action.from);
     let to = BitBoard::index(action.to);
 
     // The taken pawn is one square ahead of the en passant destination.
-    let taken_pos = if is_white { action.to - 8 } else { action.to + 8 };
+    let taken_pos = match team { 
+        Team::White => action.to - 8,
+        Team::Black => action.to + 8 
+    };
     let taken = BitBoard::index(taken_pos);
 
-    let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(8);
+    let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(7);
 
-    let piece_index = board.state.mailbox[action.from as usize] - 1;
+    let piece_index = state.mailbox[action.from as usize] - 1;
 
     updates.push(HistoryUpdate::Mailbox(action.from, piece_index + 1));
     updates.push(HistoryUpdate::Mailbox(taken_pos, piece_index + 1));
     updates.push(HistoryUpdate::Mailbox(action.to, 0));
 
-    updates.push(HistoryUpdate::Black(board.state.black));
-    updates.push(HistoryUpdate::White(board.state.white));
-    updates.push(HistoryUpdate::Piece(piece_index, board.state.pieces[piece_index as usize]));
-    updates.push(HistoryUpdate::FirstMove(board.state.first_move));
+    updates.push(HistoryUpdate::Black(state.black));
+    updates.push(HistoryUpdate::White(state.white));
+    updates.push(HistoryUpdate::Piece(piece_index, state.pieces[piece_index as usize]));
+    updates.push(HistoryUpdate::FirstMove(state.first_move));
 
-    if is_white {
-        board.state.white = board.state.white.xor(from).or(to);
-        board.state.black = board.state.black.xor(taken);
-    } else {
-        board.state.black = board.state.black.xor(from).or(to);
-        board.state.white = board.state.white.xor(taken);
+    match team {
+        Team::White => {
+            state.white = state.white.xor(from).or(to);
+            state.black = state.black.xor(taken);
+        }
+        Team::Black => {
+            state.black = state.black.xor(from).or(to);
+            state.white = state.white.xor(taken);
+        }
     }
-    board.state.mailbox[action.from as usize] = 0;
-    board.state.mailbox[taken_pos as usize] = 0;
-    board.state.mailbox[action.to as usize] = piece_index + 1;
 
-    board.state.pieces[piece_index as usize] = board.state.pieces[piece_index as usize].xor(from).xor(taken).or(to);
-    board.state.first_move = board.state.first_move.xor(from).xor(taken);
+    state.mailbox[action.from as usize] = 0;
+    state.mailbox[taken_pos as usize] = 0;
+    state.mailbox[action.to as usize] = piece_index + 1;
+
+    state.pieces[piece_index as usize] = state.pieces[piece_index as usize].xor(from).xor(taken).or(to);
+    state.first_move = state.first_move.xor(from).xor(taken);
 
     HistoryState(updates)
 }
 
-fn make_promotion_move<T: BitInt>(board: &mut Board<T>, action: Action) -> HistoryState<T> {
-    let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(8);
-    let piece_index = board.state.mailbox[action.from as usize] - 1;
+fn make_promotion_move<T: BitInt>(state: &mut BoardState<T>, action: Action) -> HistoryState<T> {
+    let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(7);
+    let piece_index = state.mailbox[action.from as usize] - 1;
     let promoted_piece_type = action.info - 2;
-    let mailbox = board.state.mailbox[action.to as usize];
+    let mailbox = state.mailbox[action.to as usize];
 
     updates.push(HistoryUpdate::Mailbox(action.from, piece_index + 1));
-    updates.push(HistoryUpdate::Mailbox(action.to, board.state.mailbox[action.to as usize]));
+    updates.push(HistoryUpdate::Mailbox(action.to, state.mailbox[action.to as usize]));
 
-    let pawns = board.state.pieces[piece_index as usize];
+    let white = state.white;
+    let black = state.black;
+
+    let pawns = state.pieces[piece_index as usize];
 
     let from = BitBoard::index(action.from);
     let to = BitBoard::index(action.to);
 
-    let is_white = board.state.moving_team == Team::White;
+    let team = state.moving_team;
     let is_capture = mailbox > 0;
 
     // Save the moved piece's old state
     updates.push(HistoryUpdate::Piece(piece_index, pawns));
 
     // Add the promotion type's old state
-    updates.push(HistoryUpdate::Piece(promoted_piece_type, board.state.pieces[promoted_piece_type as usize]));
+    updates.push(HistoryUpdate::Piece(promoted_piece_type, state.pieces[promoted_piece_type as usize]));
 
-    if is_white {
-        updates.push(HistoryUpdate::White(board.state.white));
-    } else {
-        updates.push(HistoryUpdate::Black(board.state.black));
+    match team {
+        Team::White => updates.push(HistoryUpdate::White(white)),
+        Team::Black => updates.push(HistoryUpdate::Black(black))
     }
 
     if is_capture {
         let piece_type = mailbox - 1;
 
         // Remove the captured piece type from its bitboard
-        let piece = board.state.pieces[piece_type as usize];
+        let piece = state.pieces[piece_type as usize];
         let same_piece_type = piece_type == piece_index;
         if !same_piece_type {
             updates.push(HistoryUpdate::Piece(piece_type, piece));
-            board.state.pieces[piece_type as usize] = piece.xor(to);
+            state.pieces[piece_type as usize] = piece.xor(to);
         }
 
-        if is_white {
-            updates.push(HistoryUpdate::Black(board.state.black));
-            board.state.black = board.state.black.xor(to);
-        } else {
-            updates.push(HistoryUpdate::White(board.state.white));
-            board.state.white = board.state.white.xor(to);
+        match team {
+            Team::White => {
+                updates.push(HistoryUpdate::Black(black));
+                state.black = black.xor(to);
+            }
+            Team::Black => {
+                updates.push(HistoryUpdate::White(white));
+                state.white = white.xor(to);
+            }
         }
     }
 
     // Remove the pawn
-    board.state.pieces[piece_index as usize] = pawns.xor(from);
+    state.pieces[piece_index as usize] = pawns.xor(from);
 
     // Add the new piece where the pawn left.
-    board.state.pieces[promoted_piece_type as usize] = board.state.pieces[promoted_piece_type as usize].or(to);
+    state.pieces[promoted_piece_type as usize] = state.pieces[promoted_piece_type as usize].or(to);
 
     // Update the moved piece's team bitboard
-    if is_white {
-        board.state.white = board.state.white.xor(from).or(to);
-    } else {
-        board.state.black = board.state.black.xor(from).or(to);
+    match team {
+        Team::White => {
+            updates.push(HistoryUpdate::White(white));
+            state.white = white.xor(from).or(to);
+        }
+        Team::Black => {
+            updates.push(HistoryUpdate::Black(black));
+            state.black = black.xor(from).or(to);
+        }
     }
 
-    let first_move = board.state.first_move.and_not(from.or(to));
+    let first_move = state.first_move.and_not(from.or(to));
 
-    if first_move != board.state.first_move {
-        updates.push(HistoryUpdate::FirstMove(board.state.first_move));
-        board.state.first_move = first_move;
+    if first_move != state.first_move {
+        updates.push(HistoryUpdate::FirstMove(state.first_move));
+        state.first_move = first_move;
     }
 
-    board.state.mailbox[action.from as usize] = 0;
-    board.state.mailbox[action.to as usize] = promoted_piece_type + 1;
+    state.mailbox[action.from as usize] = 0;
+    state.mailbox[action.to as usize] = promoted_piece_type + 1;
 
     HistoryState(updates)
 }
@@ -329,9 +346,9 @@ impl<T : BitInt> PieceProcessor<T> for PawnProcess {
 
     fn make_move(&self, board: &mut Board<T>, action: Action) -> HistoryState<T> {
         match action.info {
-            0 => make_chess_move(board, action),
-            1 => make_en_passant_move(board, action),
-            _ => make_promotion_move(board, action)
+            0 => make_chess_move(&mut board.state, action),
+            1 => make_en_passant_move(&mut board.state, action),
+            _ => make_promotion_move(&mut board.state, action)
         }
     }
 

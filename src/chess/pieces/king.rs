@@ -1,20 +1,19 @@
-use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action, HistoryState, HistoryUpdate, HistoryUpdate::Mailbox}, piece::{Piece, PieceProcessor}, Board, Team}};
+use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action, HistoryState, HistoryUpdate::{self, Mailbox}}, piece::{Piece, PieceProcessor}, Board, BoardState, Team}};
 
-fn make_castling_move<T : BitInt>(board: &mut Board<T>, action: Action) -> HistoryState<T> {
-    let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(8);
+fn make_castling_move<T : BitInt>(state: &mut BoardState<T>, action: Action) -> HistoryState<T> {
+    let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(7);
     
-    let piece_index = board.state.mailbox[action.from as usize] - 1;
+    let piece_index = state.mailbox[action.from as usize] - 1;
+    let rook_ind = state.mailbox[action.to as usize] - 1;
 
-    if board.state.moving_team == Team::White {
-        updates.push(HistoryUpdate::White(board.state.white));
+    if state.moving_team == Team::White {
+        updates.push(HistoryUpdate::White(state.white));
     } else {
-        updates.push(HistoryUpdate::Black(board.state.black));
+        updates.push(HistoryUpdate::Black(state.black));
     }
 
-    updates.push(HistoryUpdate::Piece(piece_index, board.state.pieces[piece_index as usize]));
-
-    let rook_ind = board.find_piece("rook").expect("Cannot castle w/o rook");
-    updates.push(HistoryUpdate::Piece(rook_ind as u8, board.state.pieces[rook_ind]));
+    updates.push(HistoryUpdate::Piece(piece_index, state.pieces[piece_index as usize]));
+    updates.push(HistoryUpdate::Piece(rook_ind as u8, state.pieces[rook_ind as usize]));
 
     // This isn't Fischer-Random compatible yet.
 
@@ -34,19 +33,19 @@ fn make_castling_move<T : BitInt>(board: &mut Board<T>, action: Action) -> Histo
     let king_relocated = BitBoard::index(relocated_king);
     let rook_relocated = BitBoard::index(relocated_rook);
 
-    board.state.pieces[piece_index as usize] = board.state.pieces[piece_index as usize].xor(king).or(king_relocated);
-    board.state.pieces[rook_ind] = board.state.pieces[rook_ind].xor(rook).or(rook_relocated);
+    state.pieces[piece_index as usize] = state.pieces[piece_index as usize].xor(king).or(king_relocated);
+    state.pieces[rook_ind as usize] = state.pieces[rook_ind as usize].xor(rook).or(rook_relocated);
     
-    if board.state.moving_team == Team::White {
-        board.state.white = board.state.white.xor(king).xor(rook).or(king_relocated).or(rook_relocated);
+    if state.moving_team == Team::White {
+        state.white = state.white.xor(king).xor(rook).or(king_relocated).or(rook_relocated);
     } else {
-        board.state.black = board.state.black.xor(king).xor(rook).or(king_relocated).or(rook_relocated);
+        state.black = state.black.xor(king).xor(rook).or(king_relocated).or(rook_relocated);
     }
 
-    board.state.mailbox[action.from as usize] = 0;
-    board.state.mailbox[action.to as usize] = 0;
-    board.state.mailbox[relocated_king as usize] = piece_index + 1;
-    board.state.mailbox[relocated_rook as usize] = rook_ind as u8 + 1;
+    state.mailbox[action.from as usize] = 0;
+    state.mailbox[action.to as usize] = 0;
+    state.mailbox[relocated_king as usize] = piece_index + 1;
+    state.mailbox[relocated_rook as usize] = rook_ind as u8 + 1;
 
     HistoryState(updates)
 }
@@ -166,9 +165,9 @@ impl<T : BitInt> PieceProcessor<T> for KingProcess {
 
     fn make_move(&self, board: &mut Board<T>, action: Action) -> HistoryState<T> {
         if action.info == 0 {
-            make_chess_move(board, action)
+            make_chess_move(&mut board.state, action)
         } else {
-            make_castling_move(board, action)
+            make_castling_move(&mut board.state, action)
         }
     }
 }

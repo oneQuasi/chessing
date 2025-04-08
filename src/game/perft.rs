@@ -15,14 +15,14 @@ impl<'a, T : BitInt> Board<'a, T> {
             let is_legal = self.game.processor.is_legal(self);
     
             if !is_legal {
-                self.restore(history);
+                self.state.restore(history);
                 continue;
             }
     
             let sub_nodes = self.perft(depth - 1);
             nodes += sub_nodes;
     
-            self.restore(history);
+            self.state.restore(history);
         }
         nodes
     }

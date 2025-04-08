@@ -30,8 +30,7 @@ pub struct Board<'a, T : BitInt> {
     /// A cache of important piece indexes guaranteed by the game processor.
     pub required_pieces: Vec<usize>,
     pub edges: Vec<Edges<T>>,
-    pub lookup: PieceLookup<T>,
-    pub history: Vec<Action>
+    pub lookup: PieceLookup<T>
 }
 
 pub struct Game<T : BitInt> {
@@ -102,10 +101,11 @@ pub struct BoardState<T : BitInt> {
 
     pub white: BitBoard<T>,
     pub black: BitBoard<T>,
-
     pub pieces: Vec<BitBoard<T>>,
 
-    pub mailbox: Vec<u8>
+    pub mailbox: Vec<u8>,
+
+    pub history: Vec<Action>
 }
 
 impl<T : BitInt> BoardState<T> {
@@ -116,13 +116,17 @@ impl<T : BitInt> BoardState<T> {
             white: BitBoard::empty(),
             first_move: BitBoard::empty(),
             pieces: vec![BitBoard::empty(); 6],
+            history: vec![],
             mailbox: vec![]
         }
     }
 
     #[inline(always)]
     pub fn team(&self, team: Team) -> BitBoard<T> {
-        if team == Team::White { self.white } else { self.black }
+        match team { 
+            Team::White => self.white,
+            Team::Black => self.black
+        }
     }
 
     #[inline(always)]
@@ -133,6 +137,30 @@ impl<T : BitInt> BoardState<T> {
     #[inline(always)]
     pub fn opposite_team(&self) -> BitBoard<T> {
         self.team(self.moving_team.next())
+    }
+
+    pub fn restore(&mut self, state: HistoryState<T>) {
+        self.moving_team = self.moving_team.next();
+        self.history.pop();
+        for change in state.0 {
+            match change {
+                HistoryUpdate::Mailbox(index, value) => {
+                    self.mailbox[index as usize] = value;
+                }
+                HistoryUpdate::Piece(index, board) => {
+                    self.pieces[index as usize] = board;
+                }
+                HistoryUpdate::White(board) => {
+                    self.white = board;
+                }
+                HistoryUpdate::Black(board) => {
+                    self.black = board;
+                }
+                HistoryUpdate::FirstMove(board) => {
+                    self.first_move = board;
+                }
+            }
+        }
     }
 }
 
@@ -147,8 +175,7 @@ impl<'a, T : BitInt> Board<'a, T> {
                 BitBoard::edges(game.bounds, 1),
                 BitBoard::edges(game.bounds, 2)
             ],
-            lookup: vec![ vec![]; 8 ],
-            history: vec![]
+            lookup: vec![ vec![]; 8 ]
         }
     }
 
@@ -224,7 +251,7 @@ impl<'a, T : BitInt> Board<'a, T> {
         for action in self.list_actions() {
             let history = self.play(action);
             let is_legal = self.game.processor.is_legal(self);
-            self.restore(history);
+            self.state.restore(history);
             
             if is_legal {
                 actions.push(action);
@@ -272,31 +299,7 @@ impl<'a, T : BitInt> Board<'a, T> {
         let state = self.game.pieces[piece_index as usize].processor.make_move(self, action);
         self.state.moving_team = self.state.moving_team.next();
 
-        self.history.push(action);
+        self.state.history.push(action);
         state
-    }
-
-    pub fn restore(&mut self, state: HistoryState<T>) {
-        self.state.moving_team = self.state.moving_team.next();
-        self.history.pop();
-        for change in state.0 {
-            match change {
-                HistoryUpdate::Mailbox(index, value) => {
-                    self.state.mailbox[index as usize] = value;
-                }
-                HistoryUpdate::Piece(index, board) => {
-                    self.state.pieces[index as usize] = board;
-                }
-                HistoryUpdate::White(board) => {
-                    self.state.white = board;
-                }
-                HistoryUpdate::Black(board) => {
-                    self.state.black = board;
-                }
-                HistoryUpdate::FirstMove(board) => {
-                    self.state.first_move = board;
-                }
-            }
-        }
     }
 }

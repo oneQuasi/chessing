@@ -83,7 +83,7 @@ impl<T : BitInt> PieceProcessor<T> for BishopProcess {
     }
 
     fn make_move(&self, board: &mut Board<T>, action: Action) -> HistoryState<T> {
-        make_chess_move(board, action)
+        make_chess_move(&mut board.state, action)
     }
 
 }
