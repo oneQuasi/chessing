@@ -22,6 +22,8 @@ Games to be implemented:
 - [Shogi](https://en.wikipedia.org/wiki/Shogi)
 - [Ataxx](https://en.wikipedia.org/wiki/Ataxx)
 
+Additionally, other chess-compatible games can be implemented within this framework by implementing `GameProcessor` and `PieceProcessor`.
+
 ## Quickstart
 
 ```rs
