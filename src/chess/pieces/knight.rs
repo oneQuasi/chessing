@@ -41,12 +41,13 @@ impl<T : BitInt> PieceProcessor<T> for KnightProcess {
     fn list_actions(&self, board: &mut Board<T>, piece_index: usize) -> Vec<Action> {
         let moving_team = board.state.team_to_move();
         let mut actions: Vec<Action> = Vec::with_capacity(8);
+        let stored_piece_index = piece_index as u8;
 
         for knight in board.state.pieces[piece_index].and(moving_team).iter() {
-            let pos = knight as usize;
+            let pos = knight as u8;
             let moves = board.lookup[piece_index][0][knight as usize].and_not(moving_team);
             for movement in moves.iter() {
-                actions.push(Action::from(pos, movement as usize, piece_index))
+                actions.push(Action::from(pos, movement as u8, stored_piece_index))
             }
         }
     

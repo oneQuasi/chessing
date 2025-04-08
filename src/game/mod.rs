@@ -168,11 +168,12 @@ impl<'a, T : BitInt> Board<'a, T> {
 
     pub fn load_pieces(&mut self, pos: &str) {
         for (y, row) in pos.split("/").enumerate() {
-            let mut x: usize = 0;
+            let y = y as u8;
+            let mut x: u8 = 0;
 
             for char in row.chars() {
                 if let Some(skip) = char.to_digit(10) {
-                    x += skip as usize;
+                    x += skip as u8;
                     continue;
                 }
 
@@ -235,11 +236,11 @@ impl<'a, T : BitInt> Board<'a, T> {
     }
 
     pub fn display_action(&mut self, action: Action) -> Vec<String> {
-        self.game.pieces[action.piece_type].processor.display_action(self, action)
+        self.game.pieces[action.piece_type as usize].processor.display_action(self, action)
     }
 
     pub fn display_uci_action(&mut self, action: Action) -> String {
-        self.game.pieces[action.piece_type].processor.display_uci_action(self, action)
+        self.game.pieces[action.piece_type as usize].processor.display_uci_action(self, action)
     }
 
     pub fn find_action(&mut self, action: &str) -> Action {
@@ -254,7 +255,7 @@ impl<'a, T : BitInt> Board<'a, T> {
     
 
     pub fn play(&mut self, action: Action) -> HistoryState<T> {
-        let state = self.game.pieces[action.piece_type].processor.make_move(self, action);
+        let state = self.game.pieces[action.piece_type as usize].processor.make_move(self, action);
         self.state.moving_team = self.state.moving_team.next();
 
         self.history.push(action);

@@ -12,8 +12,8 @@ pub struct BitBoard<T: BitInt>(pub T);
 
 #[derive(Clone, Copy, Debug)]
 pub struct Bounds {
-    pub rows: usize,
-    pub cols: usize,
+    pub rows: u8,
+    pub cols: u8,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -48,7 +48,7 @@ impl<T: BitInt> Iterator for BitPositions<T> {
 }
 
 impl Bounds {
-    pub fn new(rows: usize, cols: usize) -> Bounds {
+    pub fn new(rows: u8, cols: u8) -> Bounds {
         Bounds { rows, cols }
     }
 }
@@ -117,7 +117,7 @@ impl<T: BitInt> BitBoard<T> {
         }
     }
 
-    pub fn edges_left(bounds: Bounds, depth: usize) -> BitBoard<T> {
+    pub fn edges_left(bounds: Bounds, depth: u8) -> BitBoard<T> {
         let Bounds { rows, cols } = bounds;
         if rows < 3 || cols < 3 || depth == 0 {
             return BitBoard(T::zero());
@@ -127,13 +127,13 @@ impl<T: BitInt> BitBoard<T> {
         for row in 0..rows {
             for depth in 0..depth.min(cols) {
                 let idx = row * cols + depth;
-                mask = mask | (T::one() << idx);
+                mask = mask | (T::one() << (idx as usize));
             }
         }
         BitBoard(mask)
     }
 
-    pub fn edges_right(bounds: Bounds, depth: usize) -> BitBoard<T> {
+    pub fn edges_right(bounds: Bounds, depth: u8) -> BitBoard<T> {
         let Bounds { rows, cols } = bounds;
         if rows < 3 || cols < 3 || depth == 0 {
             return BitBoard(T::zero());
@@ -143,13 +143,13 @@ impl<T: BitInt> BitBoard<T> {
         for row in 0..rows {
             for depth in 0..depth.min(cols) {
                 let idx = row * cols + (cols - 1 - depth);
-                mask = mask | (T::one() << idx);
+                mask = mask | (T::one() << (idx as usize));
             }
         }
         BitBoard(mask)
     }
 
-    pub fn edges_down(bounds: Bounds, depth: usize) -> BitBoard<T> {
+    pub fn edges_down(bounds: Bounds, depth: u8) -> BitBoard<T> {
         let Bounds { rows, cols } = bounds;
         if rows < 3 || cols < 3 || depth == 0 {
             return BitBoard(T::zero());
@@ -158,14 +158,14 @@ impl<T: BitInt> BitBoard<T> {
         let mut mask = T::zero();
         for col in 0..cols {
             for depth in 0..depth.min(rows) {
-                let idx = depth * cols + col as usize;
-                mask = mask | (T::one() << idx);
+                let idx = depth * cols + col;
+                mask = mask | (T::one() << (idx as usize));
             }
         }
         BitBoard(mask)
     }
 
-    pub fn edges_up(bounds: Bounds, depth: usize) -> BitBoard<T> {
+    pub fn edges_up(bounds: Bounds, depth: u8) -> BitBoard<T> {
         let Bounds { rows, cols } = bounds;
         if rows < 3 || cols < 3 || depth == 0 {
             return BitBoard(T::zero());
@@ -174,14 +174,14 @@ impl<T: BitInt> BitBoard<T> {
         let mut mask = T::zero();
         for col in 0..cols {
             for depth in 0..depth.min(rows) {
-                let idx = (rows - 1 - depth) * cols + col as usize;
-                mask = mask | (T::one() << idx);
+                let idx = (rows - 1 - depth) * cols + col;
+                mask = mask | (T::one() << (idx as usize));
             }
         }
         BitBoard(mask)
     }
 
-    pub fn edges(bounds: Bounds, depth: usize) -> Edges<T> {
+    pub fn edges(bounds: Bounds, depth: u8) -> Edges<T> {
         let left = Self::edges_left(bounds, depth);
         let right = Self::edges_right(bounds, depth);
         let top = Self::edges_up(bounds, depth);
@@ -201,8 +201,8 @@ impl<T: BitInt> BitBoard<T> {
         BitBoard(T::zero())
     }
 
-    pub fn index(index: usize) -> BitBoard<T> {
-        BitBoard(T::one() << index)
+    pub fn index(index: u8) -> BitBoard<T> {
+        BitBoard(T::one() << index.into())
     }
 
     pub fn count(self) -> u32 {
@@ -233,7 +233,7 @@ impl<T: BitInt> BitBoard<T> {
         BitBoard(mask << start)
     }
 
-    pub fn coords(x: usize, y: usize, bounds: Bounds) -> BitBoard<T> {
+    pub fn coords(x: u8, y: u8, bounds: Bounds) -> BitBoard<T> {
         assert!(x < bounds.cols, "x coordinate out of bounds");
         assert!(y < bounds.rows, "y coordinate out of bounds");
 

@@ -5,13 +5,13 @@ use super::{Board, Team};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Action {
-    pub from: usize,
-    pub to: usize,
-    pub info: u16,
-    pub piece_type: usize
+    pub from: u8,
+    pub to: u8,
+    pub info: u8,
+    pub piece_type: u8
 }
 
-pub fn index_to_square(index: usize) -> String {
+pub fn index_to_square(index: u8) -> String {
     if index > 63 {
         return format!("N/A");
     }
@@ -26,11 +26,11 @@ pub fn index_to_square(index: usize) -> String {
 }
 
 impl Action {
-    pub fn from(from: usize, to: usize, piece_type: usize) -> Action {
+    pub fn from(from: u8, to: u8, piece_type: u8) -> Action {
         Action { from, to, info: 0, piece_type }
     }
 
-    pub fn with_info(self, info: u16) -> Action {
+    pub fn with_info(self, info: u8) -> Action {
         Action { from: self.from, to: self.to, info, piece_type: self.piece_type }
     }
 }
@@ -66,16 +66,16 @@ pub fn make_chess_move<T : BitInt>(board: &mut Board<T>, action: Action) -> Hist
     let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(6);
     let piece_index = action.piece_type;
     
-    let from = BitBoard::index(action.from);
-    let to = BitBoard::index(action.to);
+    let from = BitBoard::index(action.from.into());
+    let to = BitBoard::index(action.to.into());
 
     let is_white = board.state.moving_team == Team::White;
     let opp_team = board.state.opposite_team();
     let is_capture = to.and(opp_team).is_set();
 
     // Save the moved piece's old state
-    let piece = board.state.pieces[piece_index];
-    updates.push(HistoryUpdate::Piece(piece_index, piece));
+    let piece = board.state.pieces[piece_index as usize];
+    updates.push(HistoryUpdate::Piece(piece_index as usize, piece));
 
     let white = board.state.white;
     let black = board.state.black;
@@ -85,7 +85,7 @@ pub fn make_chess_move<T : BitInt>(board: &mut Board<T>, action: Action) -> Hist
         for piece_type in 0..board.game.pieces.len() {
             let piece = board.state.pieces[piece_type];
             if piece.and(to).is_set() {
-                let same_piece_type = piece_type == piece_index;
+                let same_piece_type = piece_type == piece_index.into();
                 if !same_piece_type {
                     updates.push(HistoryUpdate::Piece(piece_type, piece));
                     board.state.pieces[piece_type] = piece.xor(to);
@@ -106,7 +106,7 @@ pub fn make_chess_move<T : BitInt>(board: &mut Board<T>, action: Action) -> Hist
     }
 
     // Update the moved piece's piece bitboard
-    board.state.pieces[piece_index] = piece.xor(from).or(to);
+    board.state.pieces[piece_index as usize] = piece.xor(from).or(to);
 
     // Update the moved piece's team bitboard
     if is_white {

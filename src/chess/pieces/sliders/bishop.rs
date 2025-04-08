@@ -61,11 +61,13 @@ impl<T : BitInt> PieceProcessor<T> for BishopProcess {
     fn list_actions(&self, board: &mut Board<T>, piece_index: usize) -> Vec<Action> {
         let moving_team = board.state.team_to_move();
         let bishops = board.state.pieces[piece_index];
+        let stored_piece_index = piece_index as u8;
 
         let mut actions: Vec<Action> = Vec::with_capacity(4);
 
         for bishop in bishops.and(moving_team).iter() {
             let pos = bishop as usize;
+            let stored_pos = bishop as u8;
             
             let up_right = ray_attacks_forward(board, pos, piece_index, UP_RIGHT);
             let up_left = ray_attacks_forward(board, pos, piece_index, UP_LEFT);
@@ -74,7 +76,7 @@ impl<T : BitInt> PieceProcessor<T> for BishopProcess {
 
             let moves = up_right.or(up_left).or(down_right).or(down_left).and_not(moving_team);
             for movement in moves.iter() {
-                actions.push(Action::from(pos, movement as usize, piece_index))
+                actions.push(Action::from(stored_pos, movement as u8, stored_piece_index))
             }
         }
 

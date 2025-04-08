@@ -55,7 +55,7 @@ fn list_white_pawn_actions<T: BitInt>(board: &mut Board<T>, piece_index: usize) 
     let mut black = board.state.black;
 
     if let Some(last_move) = board.history.last() {
-        let was_pawn_move = last_move.piece_type == piece_index;
+        let was_pawn_move = last_move.piece_type == piece_index as u8;
         let was_double_move = last_move.to.abs_diff(last_move.from) == 16;
 
         if was_pawn_move && was_double_move {
@@ -78,21 +78,23 @@ fn list_white_pawn_actions<T: BitInt>(board: &mut Board<T>, piece_index: usize) 
     let right_captures = up_once.and_not(edges.right).right(1).and(black);
 
     let mut actions: Vec<Action> = Vec::with_capacity(pawns.count() as usize);
+    let stored_piece_index = piece_index as u8;
+
     for movement in moves.iter() {
-        let movement = movement as usize;
-        add_white_action(board, &mut actions, Action::from(movement - 8, movement, piece_index));
+        let movement = movement as u8;
+        add_white_action(board, &mut actions, Action::from(movement - 8, movement, stored_piece_index));
     }
     for movement in first_moves.iter() {
-        let movement = movement as usize;
-        add_white_action(board, &mut actions, Action::from(movement - 16, movement, piece_index));
+        let movement = movement as u8;
+        add_white_action(board, &mut actions, Action::from(movement - 16, movement, stored_piece_index));
     }
     for movement in left_captures.iter() {
-        let movement = movement as usize;
-        add_white_action(board, &mut actions, Action::from(movement - 8 + 1, movement, piece_index));
+        let movement = movement as u8;
+        add_white_action(board, &mut actions, Action::from(movement - 8 + 1, movement, stored_piece_index));
     }
     for movement in right_captures.iter() {
-        let movement = movement as usize;
-        add_white_action(board, &mut actions, Action::from(movement - 8 - 1, movement, piece_index));
+        let movement = movement as u8;
+        add_white_action(board, &mut actions, Action::from(movement - 8 - 1, movement, stored_piece_index));
     }
 
     actions
@@ -104,11 +106,11 @@ fn list_black_pawn_actions<T: BitInt>(board: &mut Board<T>, piece_index: usize) 
     let mut white = board.state.white;
 
     if let Some(last_move) = board.history.last() {
-        let was_pawn_move = last_move.piece_type == piece_index;
+        let was_pawn_move = last_move.piece_type == piece_index as u8;
         let was_double_move = last_move.to.abs_diff(last_move.from) == 16;
 
         if was_pawn_move && was_double_move {
-            white = white.or(BitBoard::index(last_move.from + 8));
+            white = white.or(BitBoard::index((last_move.from + 8).into()));
         }
     }
 
@@ -127,21 +129,23 @@ fn list_black_pawn_actions<T: BitInt>(board: &mut Board<T>, piece_index: usize) 
     let right_captures = down_once.and_not(edges.right).right(1).and(white);
 
     let mut actions: Vec<Action> = Vec::with_capacity(pawns.count() as usize);
+    let stored_piece_index = piece_index as u8;
+
     for movement in moves.iter() {
-        let movement = movement as usize;
-        add_black_action(board, &mut actions, Action::from(movement + 8, movement, piece_index));
+        let movement = movement as u8;
+        add_black_action(board, &mut actions, Action::from(movement + 8, movement, stored_piece_index));
     }
     for movement in first_moves.iter() {
-        let movement = movement as usize;
-        add_black_action(board, &mut actions, Action::from(movement + 16, movement, piece_index));
+        let movement = movement as u8;
+        add_black_action(board, &mut actions, Action::from(movement + 16, movement, stored_piece_index));
     }
     for movement in left_captures.iter() {
-        let movement = movement as usize;
-        add_black_action(board, &mut actions, Action::from(movement + 8 + 1, movement, piece_index));
+        let movement = movement as u8;
+        add_black_action(board, &mut actions, Action::from(movement + 8 + 1, movement, stored_piece_index));
     }
     for movement in right_captures.iter() {
-        let movement = movement as usize;
-        add_black_action(board, &mut actions, Action::from(movement + 8 - 1, movement, piece_index));
+        let movement = movement as u8;
+        add_black_action(board, &mut actions, Action::from(movement + 8 - 1, movement, stored_piece_index));
     }
 
     actions
@@ -160,7 +164,7 @@ fn make_en_passant_move<T: BitInt>(board: &mut Board<T>, action: Action) -> Hist
 
     updates.push(HistoryUpdate::Black(board.state.black));
     updates.push(HistoryUpdate::White(board.state.white));
-    updates.push(HistoryUpdate::Piece(action.piece_type, board.state.pieces[action.piece_type]));
+    updates.push(HistoryUpdate::Piece(action.piece_type as usize, board.state.pieces[action.piece_type as usize]));
     updates.push(HistoryUpdate::FirstMove(board.state.first_move));
 
     if is_white {
@@ -171,7 +175,7 @@ fn make_en_passant_move<T: BitInt>(board: &mut Board<T>, action: Action) -> Hist
         board.state.white = board.state.white.xor(taken);
     }
 
-    board.state.pieces[action.piece_type] = board.state.pieces[action.piece_type].xor(from).xor(taken).or(to);
+    board.state.pieces[action.piece_type as usize] = board.state.pieces[action.piece_type as usize].xor(from).xor(taken).or(to);
     board.state.first_move = board.state.first_move.xor(from).xor(taken);
 
     HistoryState(updates)
@@ -182,7 +186,7 @@ fn make_promotion_move<T: BitInt>(board: &mut Board<T>, action: Action) -> Histo
     let piece_index = action.piece_type;
     let promoted_piece_type = (action.info - 1) as usize;
 
-    let pawns = board.state.pieces[piece_index];
+    let pawns = board.state.pieces[piece_index as usize];
 
     let from = BitBoard::index(action.from);
     let to = BitBoard::index(action.to);
@@ -192,7 +196,7 @@ fn make_promotion_move<T: BitInt>(board: &mut Board<T>, action: Action) -> Histo
     let is_capture = to.and(opp_team).is_set();
 
     // Save the moved piece's old state
-    updates.push(HistoryUpdate::Piece(piece_index, pawns));
+    updates.push(HistoryUpdate::Piece(piece_index as usize, pawns));
 
     // Add the promotion type's old state
     updates.push(HistoryUpdate::Piece(promoted_piece_type, board.state.pieces[promoted_piece_type]));
@@ -207,7 +211,7 @@ fn make_promotion_move<T: BitInt>(board: &mut Board<T>, action: Action) -> Histo
         // Remove the captured piece type from its bitboard
         for piece_type in 0..board.game.pieces.len() {
             if board.state.pieces[piece_type].and(to).is_set() {
-                let same_piece_type = piece_type == piece_index;
+                let same_piece_type = piece_type == piece_index.into();
                 if !same_piece_type {
                     updates.push(HistoryUpdate::Piece(piece_type, board.state.pieces[piece_type]));
                     board.state.pieces[piece_type] = board.state.pieces[piece_type].xor(to);
@@ -227,7 +231,7 @@ fn make_promotion_move<T: BitInt>(board: &mut Board<T>, action: Action) -> Histo
     }
 
     // Remove the pawn
-    board.state.pieces[piece_index] = pawns.xor(from);
+    board.state.pieces[piece_index as usize] = pawns.xor(from);
 
     // Add the new piece where the pawn left.
     board.state.pieces[promoted_piece_type] = board.state.pieces[promoted_piece_type].or(to);
@@ -283,7 +287,7 @@ impl<T : BitInt> PieceProcessor<T> for PawnProcess {
     fn make_move(&self, board: &mut Board<T>, action: Action) -> HistoryState<T> {
         // If a move is a capture (because it's not going directly in front), but there's no piece where it's capturing, well it must be en passant!
         let non_capture = action.from.abs_diff(action.to) % 8 == 0;
-        let en_passant = !non_capture && BitBoard::index(action.to).and(board.state.opposite_team()).is_empty();
+        let en_passant = !non_capture && BitBoard::index(action.to.into()).and(board.state.opposite_team()).is_empty();
 
         if en_passant {
             make_en_passant_move(board, action)
