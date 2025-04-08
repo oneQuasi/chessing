@@ -46,7 +46,6 @@ for action in board.list_actions() {
 
 `chessing` supports chess-compatible games, which with respect to this project means:
 - Zero sum games (games with two opposing players).
-- Games with no more than 128 squares (because this uses Rust's `u128`).
 - Games that can be represented as pieces that can act on squares.
 
 `chessing` does not aim to support every game, but to support a subset of games related to chess, and allow for them to be implemented far more easily.
