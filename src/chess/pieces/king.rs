@@ -1,7 +1,9 @@
+use num::{PrimInt, Unsigned};
+
 use crate::{bitboard::BitBoard, game::{action::{index_to_square, make_chess_move, Action, HistoryState, HistoryUpdate}, piece::{Piece, PieceProcessor}, Board, Team}};
 
-fn make_castling_move(board: &mut Board, action: Action) -> HistoryState {
-    let mut updates: Vec<HistoryUpdate> = Vec::with_capacity(4);
+fn make_castling_move<T : PrimInt + Unsigned>(board: &mut Board<T>, action: Action) -> HistoryState<T> {
+    let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(4);
 
     if board.state.moving_team == Team::White {
         updates.push(HistoryUpdate::White(board.state.white));
@@ -41,8 +43,8 @@ fn make_castling_move(board: &mut Board, action: Action) -> HistoryState {
 
 pub struct KingProcess;
 
-impl PieceProcessor for KingProcess {
-    fn process(&self, board: &mut Board, piece_index: usize) {
+impl<T : PrimInt + Unsigned> PieceProcessor<T> for KingProcess {
+    fn process(&self, board: &mut Board<T>, piece_index: usize) {
         let edges = board.edges[0];
         board.lookup[piece_index] = vec![ vec![ ] ];
 
@@ -62,7 +64,7 @@ impl PieceProcessor for KingProcess {
         }
     }
 
-    fn capture_mask(&self, board: &mut Board, piece_index: usize, mask: BitBoard) -> BitBoard {
+    fn capture_mask(&self, board: &mut Board<T>, piece_index: usize, mask: BitBoard<T>) -> BitBoard<T> {
         let mut mask = BitBoard::empty();
         let moving_team = board.state.team_to_move();
         for king in board.state.pieces[piece_index].and(moving_team).iter() {
@@ -71,26 +73,27 @@ impl PieceProcessor for KingProcess {
         mask
     }
 
-    fn list_actions(&self, board: &mut Board, piece_index: usize) -> Vec<Action> {
+    fn list_actions(&self, board: &mut Board<T>, piece_index: usize) -> Vec<Action> {
         let moving_team = board.state.team_to_move();
         let mut actions: Vec<Action> = Vec::with_capacity(8);
 
         for king in board.state.pieces[piece_index].and(moving_team).iter() {
+            let pos = king as usize;
             let moves = board.lookup[piece_index][0][king as usize].and_not(moving_team);
             for movement in moves.iter() {
-                actions.push(Action::from(king, movement, piece_index))
+                actions.push(Action::from(pos, movement as usize, piece_index))
             }
 
             // Castling: Rook is required
 
-            let king_in_place = board.state.first_move.and(BitBoard::index(king as u16)).is_set();
+            let king_in_place = board.state.first_move.and(BitBoard::index(king as usize)).is_set();
             if !king_in_place { continue; }
 
             let rook_ind = board.find_piece("rook");
 
             if let Some(rook_ind) = rook_ind {
                 for rook in board.state.pieces[rook_ind].and(moving_team).and(board.state.first_move).iter() {
-                    let between_squares = BitBoard::between(king as u16, rook as u16);
+                    let between_squares = BitBoard::between(king as usize, rook as usize);
                     
                     // Can't castle if other pieces are in the way.
                     if between_squares.and(board.state.black.or(board.state.white)).is_set() {
@@ -98,7 +101,7 @@ impl PieceProcessor for KingProcess {
                     }
                     
                     let king_dest = if rook > king { king + 2 } else { king - 2 };
-                    let between_dest_squares = BitBoard::between_inclusive(king as u16, king_dest as u16);
+                    let between_dest_squares = BitBoard::between_inclusive(king as usize, king_dest as usize);
 
                     // We'll need the capture mask of the opp team
                     board.state.moving_team = board.state.moving_team.next();
@@ -107,12 +110,12 @@ impl PieceProcessor for KingProcess {
 
 
                     // We can't castle through check or while in check, so we'll have to check if that's the case.
-                    if between_dest_squares.or(BitBoard::index(king as u16)).and(mask).is_set() {
+                    if between_dest_squares.or(BitBoard::index(king as usize)).and(mask).is_set() {
                         continue;
                     }
 
                     // We can castle! This move is represented as king goes to where the rook is.
-                    actions.push(Action::from(king, rook, piece_index));
+                    actions.push(Action::from(pos, rook as usize, piece_index));
                 }
             }
         }
@@ -120,9 +123,9 @@ impl PieceProcessor for KingProcess {
         actions
     }
 
-    fn display_action(&self, board: &mut Board, action: Action) -> Vec<String> {
+    fn display_action(&self, board: &mut Board<T>, action: Action) -> Vec<String> {
         let display = format!("{}{}", index_to_square(action.from), index_to_square(action.to));
-        if BitBoard::index(action.to as u16).and(board.state.team_to_move()).is_set() {
+        if BitBoard::index(action.to).and(board.state.team_to_move()).is_set() {
             let king_dest = if action.to > action.from { action.from + 2 } else { action.from - 2 };
             let alternate_display = format!("{}{}", index_to_square(action.from), index_to_square(king_dest));
 
@@ -138,8 +141,8 @@ impl PieceProcessor for KingProcess {
         }
     }
 
-    fn display_uci_action(&self, board: &mut Board, action: Action) -> String {
-        if BitBoard::index(action.to as u16).and(board.state.team_to_move()).is_set() {
+    fn display_uci_action(&self, board: &mut Board<T>, action: Action) -> String {
+        if BitBoard::index(action.to).and(board.state.team_to_move()).is_set() {
             let king_dest = if action.to > action.from { action.from + 2 } else { action.from - 2 };
             let alternate_display = format!("{}{}", index_to_square(action.from), index_to_square(king_dest));
 
@@ -151,8 +154,8 @@ impl PieceProcessor for KingProcess {
         }
     }
 
-    fn make_move(&self, board: &mut Board, action: Action) -> HistoryState {
-        if BitBoard::index(action.to as u16).and(board.state.team_to_move()).is_set() {
+    fn make_move(&self, board: &mut Board<T>, action: Action) -> HistoryState<T> {
+        if BitBoard::index(action.to).and(board.state.team_to_move()).is_set() {
             // King cannot move two tiles left or right, meaning this must be a castling move
             make_castling_move(board, action)
         } else {
@@ -161,6 +164,6 @@ impl PieceProcessor for KingProcess {
     }
 }
 
-pub fn create_king() -> Piece {
+pub fn create_king<T : PrimInt + Unsigned>() -> Piece<T> {
     Piece::new("k", "king", Box::new(KingProcess))
 }

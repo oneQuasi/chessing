@@ -1,7 +1,9 @@
+use num::{PrimInt, Unsigned};
+
 use crate::{bitboard::BitBoard, game::{action::{index_to_square, make_chess_move, restore_perfectly, Action, HistoryState, HistoryUpdate}, piece::{EmptyPieceProcessor, Piece, PieceProcessor}, Board, Team}};
 
 #[inline(always)]
-fn list_white_pawn_captures(board: &mut Board, piece_index: usize) -> BitBoard {
+fn list_white_pawn_captures<T : PrimInt + Unsigned>(board: &mut Board<T>, piece_index: usize) -> BitBoard<T> {
     let pawns = board.state.pieces[piece_index];
     let edges = board.edges[0];
 
@@ -13,7 +15,7 @@ fn list_white_pawn_captures(board: &mut Board, piece_index: usize) -> BitBoard {
 }
 
 #[inline(always)]
-fn list_black_pawn_captures(board: &mut Board, piece_index: usize) -> BitBoard {
+fn list_black_pawn_captures<T: PrimInt + Unsigned>(board: &mut Board<T>, piece_index: usize) -> BitBoard<T> {
     let pawns = board.state.pieces[piece_index];
     let edges = board.edges[0];
 
@@ -25,33 +27,32 @@ fn list_black_pawn_captures(board: &mut Board, piece_index: usize) -> BitBoard {
 }
 
 #[inline(always)]
-fn add_white_action(board: &mut Board, actions: &mut Vec<Action>, action: Action) {
+fn add_white_action<T: PrimInt + Unsigned>(board: &mut Board<T>, actions: &mut Vec<Action>, action: Action) {
     if action.to > (board.game.bounds.rows * (board.game.bounds.cols - 1)) - 1 {
-        actions.push(action.with_info(1 + 1));
-        actions.push(action.with_info(2 + 1));
-        actions.push(action.with_info(3 + 1));
-        actions.push(action.with_info(4 + 1));
+        actions.push(action.with_info(2));
+        actions.push(action.with_info(3));
+        actions.push(action.with_info(4));
+        actions.push(action.with_info(5));
     } else {
         actions.push(action);
     }
 }
 
 #[inline(always)]
-fn add_black_action(board: &mut Board, actions: &mut Vec<Action>, action: Action) {
+fn add_black_action<T: PrimInt + Unsigned>(board: &mut Board<T>, actions: &mut Vec<Action>, action: Action) {
     if action.to < board.game.bounds.rows {
-        actions.push(action.with_info(1 + 1));
-        actions.push(action.with_info(2 + 1));
-        actions.push(action.with_info(3 + 1));
-        actions.push(action.with_info(4 + 1));
+        actions.push(action.with_info(2));
+        actions.push(action.with_info(3));
+        actions.push(action.with_info(4));
+        actions.push(action.with_info(5));
     } else {
         actions.push(action);
     }
 }
 
 #[inline(always)]
-fn list_white_pawn_actions(board: &mut Board, piece_index: usize) -> Vec<Action> {
+fn list_white_pawn_actions<T: PrimInt + Unsigned>(board: &mut Board<T>, piece_index: usize) -> Vec<Action> {
     let edges = board.edges[0];
-
     let mut black = board.state.black;
 
     if let Some(last_move) = board.history.last() {
@@ -59,45 +60,48 @@ fn list_white_pawn_actions(board: &mut Board, piece_index: usize) -> Vec<Action>
         let was_double_move = last_move.to.abs_diff(last_move.from) == 16;
 
         if was_pawn_move && was_double_move {
-            // En Passant: Pretend there exists a pawn where the opp would've moved if it was a single move
             black = black.or(BitBoard::index(last_move.from - 8));
         }
     }
 
     let pawns = board.state.pieces[piece_index];
 
+    let all = board.state.white.or(board.state.black);
+
     let moves = pawns.and(board.state.white)
-        .up(1).and_not(board.state.white.or(board.state.black));
+        .up(1).and_not(all);
     let first_moves = pawns.and(board.state.first_move).and(board.state.white)
-        .up(1).and_not(board.state.white.or(board.state.black))
-        .up(1).and_not(board.state.white.or(board.state.black));
-    
+        .up(1).and_not(all)
+        .up(1).and_not(all);
+
     let up_once = pawns.and(board.state.white).up(1);
     let left_captures = up_once.and_not(edges.left).left(1).and(black);
     let right_captures = up_once.and_not(edges.right).right(1).and(black);
 
     let mut actions: Vec<Action> = Vec::with_capacity(pawns.count() as usize);
     for movement in moves.iter() {
-        add_white_action(board, &mut actions, Action::from(movement - 8, movement, piece_index))
+        let movement = movement as usize;
+        add_white_action(board, &mut actions, Action::from(movement - 8, movement, piece_index));
     }
     for movement in first_moves.iter() {
-        add_white_action(board, &mut actions, Action::from(movement - 16, movement, piece_index))
+        let movement = movement as usize;
+        add_white_action(board, &mut actions, Action::from(movement - 16, movement, piece_index));
     }
-
     for movement in left_captures.iter() {
-        add_white_action(board, &mut actions, Action::from(movement - 8 + 1, movement, piece_index))
+        let movement = movement as usize;
+        add_white_action(board, &mut actions, Action::from(movement - 8 + 1, movement, piece_index));
     }
     for movement in right_captures.iter() {
-        add_white_action(board, &mut actions, Action::from(movement - 8 - 1, movement, piece_index))
+        let movement = movement as usize;
+        add_white_action(board, &mut actions, Action::from(movement - 8 - 1, movement, piece_index));
     }
 
     actions
 }
 
 #[inline(always)]
-fn list_black_pawn_actions(board: &mut Board, piece_index: usize) -> Vec<Action> {
+fn list_black_pawn_actions<T: PrimInt + Unsigned>(board: &mut Board<T>, piece_index: usize) -> Vec<Action> {
     let edges = board.edges[0];
-
     let mut white = board.state.white;
 
     if let Some(last_move) = board.history.last() {
@@ -105,50 +109,55 @@ fn list_black_pawn_actions(board: &mut Board, piece_index: usize) -> Vec<Action>
         let was_double_move = last_move.to.abs_diff(last_move.from) == 16;
 
         if was_pawn_move && was_double_move {
-            // En Passant: Pretend there exists a pawn where the opp would've moved if it was a single move
             white = white.or(BitBoard::index(last_move.from + 8));
         }
     }
 
     let pawns = board.state.pieces[piece_index];
 
-    let moves = pawns.and(board.state.black).down(1).and_not(board.state.white.or(board.state.black));
+    let all = board.state.white.or(board.state.black);
+
+    let moves = pawns.and(board.state.black)
+        .down(1).and_not(all);
     let first_moves = pawns.and(board.state.first_move).and(board.state.black)
-        .down(1).and_not(board.state.white.or(board.state.black))
-        .down(1).and_not(board.state.white.or(board.state.black));
-    
+        .down(1).and_not(all)
+        .down(1).and_not(all);
+
     let down_once = pawns.and(board.state.black).down(1);
     let left_captures = down_once.and_not(edges.left).left(1).and(white);
     let right_captures = down_once.and_not(edges.right).right(1).and(white);
 
     let mut actions: Vec<Action> = Vec::with_capacity(pawns.count() as usize);
     for movement in moves.iter() {
-        add_black_action(board, &mut actions, Action::from(movement + 8, movement, piece_index))
+        let movement = movement as usize;
+        add_black_action(board, &mut actions, Action::from(movement + 8, movement, piece_index));
     }
     for movement in first_moves.iter() {
-        add_black_action(board, &mut actions, Action::from(movement + 16, movement, piece_index))
+        let movement = movement as usize;
+        add_black_action(board, &mut actions, Action::from(movement + 16, movement, piece_index));
     }
-
     for movement in left_captures.iter() {
-        add_black_action(board, &mut actions, Action::from(movement + 8 + 1, movement, piece_index))
+        let movement = movement as usize;
+        add_black_action(board, &mut actions, Action::from(movement + 8 + 1, movement, piece_index));
     }
     for movement in right_captures.iter() {
-        add_black_action(board, &mut actions, Action::from(movement + 8 - 1, movement, piece_index))
+        let movement = movement as usize;
+        add_black_action(board, &mut actions, Action::from(movement + 8 - 1, movement, piece_index));
     }
 
     actions
 }
 
-fn make_en_passant_move(board: &mut Board, action: Action) -> HistoryState {
+fn make_en_passant_move<T: PrimInt + Unsigned>(board: &mut Board<T>, action: Action) -> HistoryState<T> {
     let is_white = board.state.moving_team == Team::White;
     let from = BitBoard::index(action.from);
     let to = BitBoard::index(action.to);
 
     // The taken pawn is one square ahead of the en passant destination.
     let taken_pos = if is_white { action.to - 8 } else { action.to + 8 };
-    let taken = BitBoard::index(taken_pos); 
+    let taken = BitBoard::index(taken_pos);
 
-    let mut updates: Vec<HistoryUpdate> = Vec::with_capacity(4);
+    let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(4);
 
     updates.push(HistoryUpdate::Black(board.state.black));
     updates.push(HistoryUpdate::White(board.state.white));
@@ -169,13 +178,13 @@ fn make_en_passant_move(board: &mut Board, action: Action) -> HistoryState {
     HistoryState(updates)
 }
 
-pub fn make_promotion_move(board: &mut Board, action: Action) -> HistoryState {
-    let mut updates: Vec<HistoryUpdate> = Vec::with_capacity(5);
+fn make_promotion_move<T: PrimInt + Unsigned>(board: &mut Board<T>, action: Action) -> HistoryState<T> {
+    let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(5);
     let piece_index = action.piece_type;
     let promoted_piece_type = (action.info - 1) as usize;
-    
+
     let pawns = board.state.pieces[piece_index];
-    
+
     let from = BitBoard::index(action.from);
     let to = BitBoard::index(action.to);
 
@@ -241,10 +250,11 @@ pub fn make_promotion_move(board: &mut Board, action: Action) -> HistoryState {
     HistoryState(updates)
 }
 
+
 pub struct PawnProcess;
 
-impl PieceProcessor for PawnProcess {
-    fn process(&self, board: &mut Board, piece_index: usize) {
+impl<T : PrimInt + Unsigned> PieceProcessor<T> for PawnProcess {
+    fn process(&self, board: &mut Board<T>, piece_index: usize) {
         let edges = board.edges[0];
 
         let pawns = board.state.pieces[piece_index];
@@ -255,7 +265,7 @@ impl PieceProcessor for PawnProcess {
         board.state.first_move = board.state.first_move.and_not(moved_white_pawns).and_not(moved_black_pawns);
     }
 
-    fn list_actions(&self, board: &mut Board, piece_index: usize) -> Vec<Action> {
+    fn list_actions(&self, board: &mut Board<T>, piece_index: usize) -> Vec<Action> {
         if board.state.moving_team == Team::White {
             list_white_pawn_actions(board, piece_index)
         } else {
@@ -263,7 +273,7 @@ impl PieceProcessor for PawnProcess {
         }
     }
 
-    fn capture_mask(&self, board: &mut Board, piece_index: usize, mask: BitBoard) -> BitBoard {
+    fn capture_mask(&self, board: &mut Board<T>, piece_index: usize, mask: BitBoard<T>) -> BitBoard<T> {
         if board.state.moving_team == Team::White {
             list_white_pawn_captures(board, piece_index)
         } else {
@@ -271,7 +281,7 @@ impl PieceProcessor for PawnProcess {
         }
     }
 
-    fn make_move(&self, board: &mut Board, action: Action) -> HistoryState {
+    fn make_move(&self, board: &mut Board<T>, action: Action) -> HistoryState<T> {
         // If a move is a capture (because it's not going directly in front), but there's no piece where it's capturing, well it must be en passant!
         let non_capture = action.from.abs_diff(action.to) % 8 == 0;
         let en_passant = !non_capture && BitBoard::index(action.to).and(board.state.opposite_team()).is_empty();
@@ -285,7 +295,7 @@ impl PieceProcessor for PawnProcess {
         }
     }
 
-    fn display_action(&self, board: &mut Board, action: Action) -> Vec<String> {
+    fn display_action(&self, board: &mut Board<T>, action: Action) -> Vec<String> {
         let promotion_piece_type = if action.info > 0 {
             board.game.pieces[(action.info - 1) as usize].symbol.to_lowercase()
         } else { "".to_string() };
@@ -297,6 +307,6 @@ impl PieceProcessor for PawnProcess {
 
 }
 
-pub fn create_pawn() -> Piece {
+pub fn create_pawn<T : PrimInt + Unsigned>() -> Piece<T> {
     Piece::new("p", "pawn", Box::new(PawnProcess))
 }

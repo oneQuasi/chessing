@@ -26,7 +26,7 @@ Games to be implemented:
 
 ```rs
 // Start Position
-let chess = Chess::create();
+let chess = Chess::create::<u64>();
 let mut board = chess.default();
 
 // Perft 
@@ -38,7 +38,7 @@ for action in board.list_actions() {
     let is_legal = board.game.processor.is_legal(&mut board);
     board.restore(history);
 
-    println!("{}", board.display_action(action));
+    println!("{}", board.display_uci_action(action));
 }
 ```
 
@@ -60,13 +60,16 @@ Implementing a Game requires processing distinct logic for pieces and games.
 ### PieceProcessor
 
 ```rs
-pub trait PieceProcessor {
-    fn process(&self, board: &mut Board, piece_index: usize);
+pub trait PieceProcessor<T : PrimInt + Unsigned> {
+    fn process(&self, board: &mut Board<T>, piece_index: usize) {}
     
-    fn list_actions(&self, board: &mut Board, piece_index: usize) -> Vec<Action>;
-    fn make_move(&self, board: &mut Board, action: Action) -> HistoryState;
+    fn list_actions(&self, board: &mut Board<T>, piece_index: usize) -> Vec<Action>;
+    fn make_move(&self, board: &mut Board<T>, action: Action) -> HistoryState<T>;
 
-    fn capture_mask(&self, board: &mut Board, piece_index: usize, mask: BitBoard) -> BitBoard;
+    /// Only useful for chess; allows us to optimize checks
+    fn capture_mask(&self, board: &mut Board<T>, piece_index: usize, mask: BitBoard<T>) -> BitBoard<T> {
+        BitBoard::empty()
+    }
 }
 ```
 
@@ -86,11 +89,11 @@ let rook_ind = board.find_piece("rook");
 ### GameProcessor
 
 ```rs
-pub trait GameProcessor {
-    fn is_legal(&self, board: &mut Board) -> bool;
-    fn load(&self, board: &mut Board, pos: &str);
+pub trait GameProcessor<T : PrimInt + Unsigned> {
+    fn is_legal(&self, board: &mut Board<T>) -> bool;
+    fn load(&self, board: &mut Board<T>, pos: &str);
 
-    fn game_state(&self, board: &mut Board, legal_actions: &[Action]) -> GameState;
+    fn game_state(&self, board: &mut Board<T>, legal_actions: &[Action]) -> GameState;
 }
 ```
 

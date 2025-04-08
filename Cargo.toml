@@ -7,6 +7,8 @@ edition = "2021"
 fancy-regex = "0.14.0"
 fastrand = "2.3.0"
 heapless = "0.8.0"
+num = "0.4.3"
+num-traits = "0.2.19"
 regex = "1.11.1"
 rustc-hash = "2.1.1"
 

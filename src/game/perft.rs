@@ -1,6 +1,8 @@
+use num::{PrimInt, Unsigned};
+
 use super::Board;
 
-impl<'a> Board<'a> {
+impl<'a, T : PrimInt + Unsigned> Board<'a, T> {
     pub fn perft(&mut self, depth: usize) -> usize {
         if depth == 0 { return 1; }
     

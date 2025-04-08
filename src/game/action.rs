@@ -1,16 +1,18 @@
+use num::{PrimInt, Unsigned};
+
 use crate::bitboard::BitBoard;
 
 use super::{Board, Team};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Action {
-    pub from: u16,
-    pub to: u16,
+    pub from: usize,
+    pub to: usize,
     pub info: u16,
     pub piece_type: usize
 }
 
-pub fn index_to_square(index: u16) -> String {
+pub fn index_to_square(index: usize) -> String {
     if index > 63 {
         return format!("N/A");
     }
@@ -25,8 +27,8 @@ pub fn index_to_square(index: u16) -> String {
 }
 
 impl Action {
-    pub fn from(from: u32, to: u32, piece_type: usize) -> Action {
-        Action { from: from as u16, to: to as u16, info: 0, piece_type }
+    pub fn from(from: usize, to: usize, piece_type: usize) -> Action {
+        Action { from, to, info: 0, piece_type }
     }
 
     pub fn with_info(self, info: u16) -> Action {
@@ -34,18 +36,18 @@ impl Action {
     }
 }
 
-pub enum HistoryUpdate {
-    White(BitBoard),
-    Black(BitBoard),
-    FirstMove(BitBoard),
-    Piece(usize, BitBoard)
+pub enum HistoryUpdate<T : PrimInt + Unsigned> {
+    White(BitBoard<T>),
+    Black(BitBoard<T>),
+    FirstMove(BitBoard<T>),
+    Piece(usize, BitBoard<T>)
 }
 
-pub struct HistoryState(pub Vec<HistoryUpdate>);
+pub struct HistoryState<T : PrimInt + Unsigned>(pub Vec<HistoryUpdate<T>>);
 
 /// For debugging or development purposes only, restores every original BitBoard
-pub fn restore_perfectly(board: &mut Board) -> HistoryState {
-    let mut updates: Vec<HistoryUpdate> = Vec::with_capacity(12);
+pub fn restore_perfectly<T : PrimInt + Unsigned>(board: &mut Board<T>) -> HistoryState<T> {
+    let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(12);
 
     for piece_type in 0..board.game.pieces.len() {
         updates.push(HistoryUpdate::Piece(piece_type, board.state.pieces[piece_type]));
@@ -61,8 +63,8 @@ pub fn restore_perfectly(board: &mut Board) -> HistoryState {
 }
 
 #[inline(always)]
-pub fn make_chess_move(board: &mut Board, action: Action) -> HistoryState {
-    let mut updates: Vec<HistoryUpdate> = Vec::with_capacity(6);
+pub fn make_chess_move<T : PrimInt + Unsigned>(board: &mut Board<T>, action: Action) -> HistoryState<T> {
+    let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(6);
     let piece_index = action.piece_type;
     
     let from = BitBoard::index(action.from);

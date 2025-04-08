@@ -1,9 +1,11 @@
+use num::{PrimInt, Unsigned};
+
 use crate::{bitboard::BitBoard, game::{action::{make_chess_move, Action, HistoryState}, piece::{Piece, PieceProcessor}, Board, Team}};
 
 pub struct KnightProcess;
 
-impl PieceProcessor for KnightProcess {
-    fn process(&self, board: &mut Board, piece_index: usize) {
+impl<T : PrimInt + Unsigned> PieceProcessor<T> for KnightProcess {
+    fn process(&self, board: &mut Board<T>, piece_index: usize) {
         let edges = board.edges[0];
         let deep_edges = board.edges[1];
         board.lookup[piece_index] = vec![ vec![] ];
@@ -27,7 +29,7 @@ impl PieceProcessor for KnightProcess {
         }
     }
     
-    fn capture_mask(&self, board: &mut Board, piece_index: usize, mask: BitBoard) -> BitBoard {
+    fn capture_mask(&self, board: &mut Board<T>, piece_index: usize, mask: BitBoard<T>) -> BitBoard<T> {
         let mut mask = BitBoard::empty();
         let moving_team = board.state.team_to_move();
         for knight in board.state.pieces[piece_index].and(moving_team).iter() {
@@ -37,25 +39,26 @@ impl PieceProcessor for KnightProcess {
     }
 
 
-    fn list_actions(&self, board: &mut Board, piece_index: usize) -> Vec<Action> {
+    fn list_actions(&self, board: &mut Board<T>, piece_index: usize) -> Vec<Action> {
         let moving_team = board.state.team_to_move();
         let mut actions: Vec<Action> = Vec::with_capacity(8);
 
         for knight in board.state.pieces[piece_index].and(moving_team).iter() {
+            let pos = knight as usize;
             let moves = board.lookup[piece_index][0][knight as usize].and_not(moving_team);
             for movement in moves.iter() {
-                actions.push(Action::from(knight, movement, piece_index))
+                actions.push(Action::from(pos, movement as usize, piece_index))
             }
         }
     
         actions
     }
 
-    fn make_move(&self, board: &mut Board, action: Action) -> HistoryState {
+    fn make_move(&self, board: &mut Board<T>, action: Action) -> HistoryState<T> {
         make_chess_move(board, action)
     }
 }
 
-pub fn create_knight() -> Piece {
+pub fn create_knight<T : PrimInt + Unsigned>() -> Piece<T> {
     Piece::new("n", "knight", Box::new(KnightProcess))
 }

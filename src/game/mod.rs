@@ -1,3 +1,4 @@
+use num::{PrimInt, Unsigned};
 use rustc_hash::FxHashMap as HashMap;
 
 use action::{Action, HistoryState, HistoryUpdate};
@@ -11,44 +12,44 @@ pub mod perft;
 pub mod suite;
 pub mod zobrist;
 
-pub type AttackDirections = Vec<BitBoard>;
+pub type AttackDirections<T : PrimInt + Unsigned> = Vec<BitBoard<T>>;
 /// AttackLookup is indexed by the index of the Most Significant 1-Bit.
 ///
 /// It stores an `AttackDirections` (alias for `Vec<BitBoard>`).
 ///     For pieces that always move the same way (like Delta Pieces), only the first slot of this AttackDirections is used, because there's no directions.
 ///     For slider pieces, there are different indexes for specific ray directions of it.
 
-pub type AttackLookup = Vec<AttackDirections>;
+pub type AttackLookup<T : PrimInt + Unsigned> = Vec<AttackDirections<T>>;
 
 /// Indexed by the piece type; find a piece's attack lookups.
-pub type PieceLookup = Vec<AttackLookup>;
+pub type PieceLookup<T : PrimInt + Unsigned> = Vec<AttackLookup<T>>;
 
-pub struct Board<'a> {
-    pub game: &'a Game,
-    pub state: BoardState,
+pub struct Board<'a, T : PrimInt + Unsigned> {
+    pub game: &'a Game<T>,
+    pub state: BoardState<T>,
     pub piece_map: HashMap<String, usize>,
-    pub edges: Vec<Edges>,
-    pub lookup: PieceLookup,
+    pub edges: Vec<Edges<T>>,
+    pub lookup: PieceLookup<T>,
     pub history: Vec<Action>
 }
 
-pub struct Game {
-    pub processor: Box<dyn GameProcessor>,
-    pub pieces: Vec<Piece>,
+pub struct Game<T : PrimInt + Unsigned> {
+    pub processor: Box<dyn GameProcessor<T>>,
+    pub pieces: Vec<Piece<T>>,
     pub bounds: Bounds,
     pub default_pos: String
 }
 
-impl Game {
-    pub fn init(&self) -> Board {
+impl<T : PrimInt + Unsigned> Game<T> {
+    pub fn init(&self) -> Board<T> {
         Board::new(self)
     }
 
-    pub fn default(&self) -> Board {
+    pub fn default(&self) -> Board<T> {
         self.load(&self.default_pos)
     }
 
-    pub fn load(&self, pos: &str) -> Board {
+    pub fn load(&self, pos: &str) -> Board<T> {
         let mut board = self.init();
         board.load(pos);
         board
@@ -56,7 +57,7 @@ impl Game {
 }
 
 pub trait GameTemplate {
-    fn create() -> Game;
+    fn create<T : PrimInt + Unsigned>() -> Game<T>;
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -67,11 +68,11 @@ pub enum GameState {
 }
 
 /// `GameProcessor` handles managing game specific processing.
-pub trait GameProcessor {
-    fn is_legal(&self, board: &mut Board) -> bool;
-    fn load(&self, board: &mut Board, pos: &str);
+pub trait GameProcessor<T : PrimInt + Unsigned> {
+    fn is_legal(&self, board: &mut Board<T>) -> bool;
+    fn load(&self, board: &mut Board<T>, pos: &str);
 
-    fn game_state(&self, board: &mut Board, legal_actions: &[Action]) -> GameState;
+    fn game_state(&self, board: &mut Board<T>, legal_actions: &[Action]) -> GameState;
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -90,50 +91,50 @@ impl Team {
 }
 
 #[derive(Debug, Clone)]
-pub struct BoardState {
+pub struct BoardState<T : PrimInt + Unsigned> {
     pub moving_team: Team,
 
     // Pieces which haven't moved are set as `first_move`
 
-    pub first_move: BitBoard,
+    pub first_move: BitBoard<T>,
 
     // Only two player games are supported.
 
-    pub white: BitBoard,
-    pub black: BitBoard,
+    pub white: BitBoard<T>,
+    pub black: BitBoard<T>,
 
-    pub pieces: Vec<BitBoard>
+    pub pieces: Vec<BitBoard<T>>
 }
 
-impl BoardState {
+impl<T : PrimInt + Unsigned> BoardState<T> {
     pub fn new() -> Self {
         Self {
             moving_team: Team::White,
-            black: BitBoard(0),
-            white: BitBoard(0),
-            first_move: BitBoard(0),
-            pieces: vec![BitBoard(0); 6],
+            black: BitBoard::empty(),
+            white: BitBoard::empty(),
+            first_move: BitBoard::empty(),
+            pieces: vec![BitBoard::empty(); 6],
         }
     }
 
     #[inline(always)]
-    pub fn team(&self, team: Team) -> BitBoard {
+    pub fn team(&self, team: Team) -> BitBoard<T> {
         if team == Team::White { self.white } else { self.black }
     }
 
     #[inline(always)]
-    pub fn team_to_move(&self) -> BitBoard {
+    pub fn team_to_move(&self) -> BitBoard<T> {
         self.team(self.moving_team)
     }
 
     #[inline(always)]
-    pub fn opposite_team(&self) -> BitBoard {
+    pub fn opposite_team(&self) -> BitBoard<T> {
         self.team(self.moving_team.next())
     }
 }
 
-impl<'a> Board<'a> {
-    pub fn new(game: &'a Game) -> Self {
+impl<'a, T : PrimInt + Unsigned> Board<'a, T> {
+    pub fn new(game: &'a Game<T>) -> Self {
         Self {
             game,
             state: BoardState::new(),
@@ -168,12 +169,11 @@ impl<'a> Board<'a> {
 
     pub fn load_pieces(&mut self, pos: &str) {
         for (y, row) in pos.split("/").enumerate() {
-            let y = y as u16;
-            let mut x: u16 = 0;
+            let mut x: usize = 0;
 
             for char in row.chars() {
                 if let Some(skip) = char.to_digit(10) {
-                    x += skip as u16;
+                    x += skip as usize;
                     continue;
                 }
 
@@ -222,8 +222,8 @@ impl<'a> Board<'a> {
         actions
     }
 
-    pub fn list_captures(&mut self, mask: BitBoard) -> BitBoard {
-        let mut captures: BitBoard = BitBoard::empty();
+    pub fn list_captures(&mut self, mask: BitBoard<T>) -> BitBoard<T> {
+        let mut captures = BitBoard::empty();
         for piece_type in 0..self.game.pieces.len() {
             let piece_mask = self.game.pieces[piece_type].processor.capture_mask(self, piece_type, mask);
             captures = piece_mask.or(captures);
@@ -248,13 +248,13 @@ impl<'a> Board<'a> {
         return actions.iter().find(|el| self.display_action(**el).contains(&action.to_string())).map(|el| *el).expect("Could not find action"); 
     }
 
-    pub fn play_action(&mut self, action: &str) -> HistoryState {
+    pub fn play_action(&mut self, action: &str) -> HistoryState<T> {
         let act = self.find_action(action);
         self.play(act)
     }
     
 
-    pub fn play(&mut self, action: Action) -> HistoryState {
+    pub fn play(&mut self, action: Action) -> HistoryState<T> {
         let state = self.game.pieces[action.piece_type].processor.make_move(self, action);
         self.state.moving_team = self.state.moving_team.next();
 
@@ -262,7 +262,7 @@ impl<'a> Board<'a> {
         state
     }
 
-    pub fn restore(&mut self, state: HistoryState) {
+    pub fn restore(&mut self, state: HistoryState<T>) {
         self.state.moving_team = self.state.moving_team.next();
         self.history.pop();
         for change in state.0 {

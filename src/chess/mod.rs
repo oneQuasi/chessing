@@ -1,5 +1,6 @@
 
 
+use num::{PrimInt, Unsigned};
 use pieces::{king::create_king, knight::create_knight, pawn::create_pawn, sliders::{bishop::create_bishop, queen::create_queen, rook::create_rook}};
 
 use crate::{bitboard::{BitBoard, Bounds}, game::{action::{index_to_square, Action}, piece::{Piece, PieceProcessor}, Board, Game, GameProcessor, GameState, GameTemplate, Team}};
@@ -9,8 +10,8 @@ pub mod suite;
 
 pub struct ChessProcessor;
 
-impl GameProcessor for ChessProcessor {
-    fn is_legal(&self, board: &mut Board) -> bool {
+impl<T : PrimInt + Unsigned> GameProcessor<T> for ChessProcessor {
+    fn is_legal(&self, board: &mut Board<T>) -> bool {
         let king_ind = board.find_piece("king").expect("King is required for chess");
         let king = board.state.pieces[king_ind].and(board.state.opposite_team());
         let mask = board.list_captures(king);
@@ -18,7 +19,7 @@ impl GameProcessor for ChessProcessor {
         mask.and(king).is_empty()
     }
 
-    fn load(&self, board: &mut Board, pos: &str) {
+    fn load(&self, board: &mut Board<T>, pos: &str) {
         let parts: Vec<String> = pos.split(" ").map(|el| el.to_string()).collect();
 
         // Piece Placement
@@ -60,7 +61,7 @@ impl GameProcessor for ChessProcessor {
         }
     }
 
-    fn game_state(&self, board: &mut Board, actions: &[Action]) -> crate::game::GameState {
+    fn game_state(&self, board: &mut Board<T>, actions: &[Action]) -> crate::game::GameState {
         if actions.len() == 0 {
             let king_ind = board.find_piece("king").expect("King is required for chess");
             let king = board.state.pieces[king_ind].and(board.state.team_to_move());
@@ -82,7 +83,7 @@ impl GameProcessor for ChessProcessor {
 pub struct Chess;
 
 impl GameTemplate for Chess {
-    fn create() -> Game {
+    fn create<T : PrimInt + Unsigned>() -> Game<T> {
         Game {
             processor: Box::new(ChessProcessor),
             pieces: vec![

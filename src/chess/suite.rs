@@ -134,7 +134,7 @@ mod tests {
 
     #[test]
     fn chess() {
-        let chess = Chess::create();
+        let chess = Chess::create::<u64>();
         test_suite(CHESS_SUITE, &chess);
     }
 }

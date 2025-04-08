@@ -7,6 +7,8 @@ fn current_time_millis() -> u128 {
         .as_millis()
 }
 
+use num::{PrimInt, Unsigned};
+
 use super::{Board, Game};
 
 #[derive(Debug)]
@@ -28,7 +30,7 @@ pub fn parse_suite(positions: &str) -> Vec<Position> {
     out
 }
 
-pub fn test_suite<'a>(positions: &str, game: &Game) {
+pub fn test_suite<'a, T : PrimInt + Unsigned>(positions: &str, game: &Game<T>) {
     let positions = parse_suite(positions);
     let mut total_nodes = 0;
 

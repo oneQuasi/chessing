@@ -1,9 +1,11 @@
+use num::{PrimInt, Unsigned};
+
 use crate::bitboard::Bounds;
 
 use super::{Board, Game, Team};
 
 #[inline(always)]
-fn get_index(board: &Board, team: Team, piece: usize, square: usize) -> usize {
+fn get_index<T : PrimInt + Unsigned>(board: &Board<T>, team: Team, piece: usize, square: usize) -> usize {
     let teams = 2;
     let team_number: usize = if team == Team::White { 0 } else { 1 };
     
@@ -17,7 +19,7 @@ pub struct ZobristTable {
 }
 
 impl ZobristTable {
-    pub fn compute(&self, board: &Board) -> u64 {
+    pub fn compute<T : PrimInt + Unsigned>(&self, board: &Board<T>) -> u64 {
         let mut hash = 0;
         for piece in 0..board.state.pieces.len() {
             for team in [board.state.moving_team, board.state.moving_team.next()] {
@@ -31,7 +33,7 @@ impl ZobristTable {
     }
 }
 
-impl Game {
+impl<T : PrimInt + Unsigned> Game<T> {
     pub fn gen_table(&self, bounds: Bounds) -> ZobristTable {
         let squares = (bounds.rows * bounds.cols) as usize;
         let pieces = self.pieces.len();
@@ -54,14 +56,14 @@ mod tests {
 
     #[test]
     fn zobrist() {
-        let chess = Chess::create();
+        let chess = Chess::create::<u64>();
         let bounds = Bounds::new(8, 8);
         let zobrist = chess.gen_table(bounds);
 
         let positions = parse_suite(CHESS_SUITE);
 
         for position in positions {
-            let mut board = chess.load(&position.pos);
+            let board = chess.load(&position.pos);
             println!("{} - {}", position.pos, zobrist.compute(&board));
         }
     }
