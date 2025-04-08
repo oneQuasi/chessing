@@ -235,13 +235,17 @@ impl<'a> Board<'a> {
         self.game.processor.game_state(self, actions)
     }
 
-    pub fn display_action(&mut self, action: Action) -> String {
+    pub fn display_action(&mut self, action: Action) -> Vec<String> {
         self.game.pieces[action.piece_type].processor.display_action(self, action)
+    }
+
+    pub fn display_uci_action(&mut self, action: Action) -> String {
+        self.game.pieces[action.piece_type].processor.display_uci_action(self, action)
     }
 
     pub fn find_action(&mut self, action: &str) -> Action {
         let actions = self.list_actions();
-        return actions.iter().find(|el| self.display_action(**el) == action).map(|el| *el).expect("Could not find action"); 
+        return actions.iter().find(|el| self.display_action(**el).contains(&action.to_string())).map(|el| *el).expect("Could not find action"); 
     }
 
     pub fn play_action(&mut self, action: &str) -> HistoryState {

@@ -30,6 +30,10 @@ pub fn parse_suite(positions: &str) -> Vec<Position> {
 
 pub fn test_suite<'a>(positions: &str, game: &Game) {
     let positions = parse_suite(positions);
+    let mut total_nodes = 0;
+
+    let full_start = current_time_millis();
+
     for (pos_ind, position) in positions.iter().enumerate() {
         let mut board = game.load(&position.pos);
 
@@ -39,6 +43,8 @@ pub fn test_suite<'a>(positions: &str, game: &Game) {
             let start = current_time_millis();
             let found_nodes = board.perft(depth);
             let end = current_time_millis();
+
+            total_nodes += found_nodes;
 
             let mut time = (end - start) as usize;
             if time == 0 { time = 1 };
@@ -50,5 +56,12 @@ pub fn test_suite<'a>(positions: &str, game: &Game) {
             assert_eq!(found_nodes, *nodes as usize, "{} found - {} expected", found_nodes, nodes);
         }
     }
+
+    let full_end = current_time_millis();
+    let time = (full_end - full_start) as usize;
+    let nps = total_nodes / time * 1000;
+
+    println!("Total nodes: {} ({} nps)", total_nodes, nps);
+
 }
 

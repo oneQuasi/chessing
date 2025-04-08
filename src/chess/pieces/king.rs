@@ -75,8 +75,6 @@ impl PieceProcessor for KingProcess {
         let moving_team = board.state.team_to_move();
         let mut actions: Vec<Action> = Vec::with_capacity(8);
 
-        let rook_ind = board.find_piece("rook");
-
         for king in board.state.pieces[piece_index].and(moving_team).iter() {
             let moves = board.lookup[piece_index][0][king as usize].and_not(moving_team);
             for movement in moves.iter() {
@@ -87,6 +85,8 @@ impl PieceProcessor for KingProcess {
 
             let king_in_place = board.state.first_move.and(BitBoard::index(king as u16)).is_set();
             if !king_in_place { continue; }
+
+            let rook_ind = board.find_piece("rook");
 
             if let Some(rook_ind) = rook_ind {
                 for rook in board.state.pieces[rook_ind].and(moving_team).and(board.state.first_move).iter() {
@@ -118,6 +118,37 @@ impl PieceProcessor for KingProcess {
         }
     
         actions
+    }
+
+    fn display_action(&self, board: &mut Board, action: Action) -> Vec<String> {
+        let display = format!("{}{}", index_to_square(action.from), index_to_square(action.to));
+        if BitBoard::index(action.to as u16).and(board.state.team_to_move()).is_set() {
+            let king_dest = if action.to > action.from { action.from + 2 } else { action.from - 2 };
+            let alternate_display = format!("{}{}", index_to_square(action.from), index_to_square(king_dest));
+
+            // King cannot move two tiles left or right, meaning this must be a castling move
+            vec![
+                display,
+                alternate_display
+            ]
+        } else {
+            vec![
+                display
+            ]
+        }
+    }
+
+    fn display_uci_action(&self, board: &mut Board, action: Action) -> String {
+        if BitBoard::index(action.to as u16).and(board.state.team_to_move()).is_set() {
+            let king_dest = if action.to > action.from { action.from + 2 } else { action.from - 2 };
+            let alternate_display = format!("{}{}", index_to_square(action.from), index_to_square(king_dest));
+
+            // King cannot move two tiles left or right, meaning this must be a castling move
+            alternate_display
+        } else {
+            let display = format!("{}{}", index_to_square(action.from), index_to_square(action.to));
+            display
+        }
     }
 
     fn make_move(&self, board: &mut Board, action: Action) -> HistoryState {

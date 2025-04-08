@@ -285,12 +285,14 @@ impl PieceProcessor for PawnProcess {
         }
     }
 
-    fn display_action(&self, board: &mut Board, action: Action) -> String {
+    fn display_action(&self, board: &mut Board, action: Action) -> Vec<String> {
         let promotion_piece_type = if action.info > 0 {
             board.game.pieces[(action.info - 1) as usize].symbol.to_lowercase()
         } else { "".to_string() };
 
-        format!("{}{}{}", index_to_square(action.from), index_to_square(action.to), promotion_piece_type)
+        vec![
+            format!("{}{}{}", index_to_square(action.from), index_to_square(action.to), promotion_piece_type)
+        ]
     }
 
 }

@@ -1,4 +1,4 @@
-/// If changed to `u64`, traditional chess is sped up by ~40%, but supporting variants is very important to this project.
+/// If changed to `u64`, traditional chess is sped up by ~28%, but supporting variants is very important to this project.
 pub type IntType = u128;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

@@ -12,8 +12,14 @@ pub trait PieceProcessor {
     fn list_actions(&self, board: &mut Board, piece_index: usize) -> Vec<Action>;
     fn make_move(&self, board: &mut Board, action: Action) -> HistoryState;
 
-    fn display_action(&self, board: &mut Board, action: Action) -> String {
-        format!("{}{}", index_to_square(action.from), index_to_square(action.to))
+    fn display_action(&self, board: &mut Board, action: Action) -> Vec<String> {
+        vec![
+            format!("{}{}", index_to_square(action.from), index_to_square(action.to))
+        ]
+    }
+
+    fn display_uci_action(&self, board: &mut Board, action: Action) -> String {
+        self.display_action(board, action)[0].clone()
     }
 
     /// Only useful for chess; allows us to optimize checks
