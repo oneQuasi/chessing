@@ -73,7 +73,7 @@ pub trait GameProcessor<T : BitInt> {
     fn load(&self, board: &mut Board<T>, pos: &str);
     fn is_legal(&self, board: &mut Board<T>) -> bool;
     fn game_state(&self, board: &mut Board<T>, legal_actions: &[Action]) -> GameState;
-    fn gen_zobrist(&self, board: &mut Board<T>) -> ZobristTable;
+    fn gen_zobrist(&self, board: &mut Board<T>, seed: u64) -> ZobristTable;
     fn hash(&self, board: &mut Board<T>, table: &ZobristTable) -> u64;
 }
 

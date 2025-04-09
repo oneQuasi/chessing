@@ -160,7 +160,7 @@ impl<T : BitInt> GameProcessor<T> for ChessProcessor {
         }
     }
 
-    fn gen_zobrist(&self, board: &mut Board<T>) -> ZobristTable {
+    fn gen_zobrist(&self, board: &mut Board<T>, seed: u64) -> ZobristTable {
         let pieces = board.game.pieces.len();
         let squares = (board.game.bounds.rows * board.game.bounds.cols) as usize;
         let teams = 2;
@@ -171,7 +171,8 @@ impl<T : BitInt> GameProcessor<T> for ChessProcessor {
         let en_passant_features = (2 * squares) + 1;
 
         ZobristTable::generate(
-            piece_features + team_to_move_features + castling_features + en_passant_features
+            piece_features + team_to_move_features + castling_features + en_passant_features,
+            seed
         )
     }
 
@@ -267,7 +268,7 @@ mod tests {
         let chess = Chess::create::<u64>();
         let mut board = chess.default();
 
-        let table = chess.processor.gen_zobrist(&mut board);
+        let table = chess.processor.gen_zobrist(&mut board, 64);
         let mut hashes = HashMap::new();
 
         let mut collisions = 0;

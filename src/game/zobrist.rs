@@ -21,7 +21,8 @@ pub struct ZobristTable {
 }
 
 impl ZobristTable {
-    pub fn generate(hashes: usize) -> ZobristTable {
+    pub fn generate(hashes: usize, seed: u64) -> ZobristTable {
+        fastrand::seed(seed);
         let mut table = vec![0; hashes];
 
         for hash in 0..hashes {
