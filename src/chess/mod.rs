@@ -2,10 +2,11 @@
 
 use pieces::{king::create_king, knight::create_knight, pawn::create_pawn, sliders::{bishop::create_bishop, queen::create_queen, rook::create_rook}};
 
-use crate::{bitboard::{BitBoard, BitInt, Bounds}, game::{action::Action, zobrist::ZobristTable, Board, Game, GameProcessor, GameState, GameTemplate, Team}};
+use crate::{bitboard::{BitBoard, BitInt, Bounds}, game::{action::{index_to_square, square_to_index, Action}, zobrist::ZobristTable, Board, Game, GameProcessor, GameState, GameTemplate, Team}};
 
 pub mod pieces;
 pub mod suite;
+mod test_positions;
 
 struct CastlingRights {
     white_king_side: bool,
@@ -16,10 +17,25 @@ struct CastlingRights {
 
 impl CastlingRights {
     fn index(&self) -> usize {
-        (self.white_king_side as usize) << 0 |
-        (self.white_queen_side as usize) << 1 |
-        (self.black_king_side as usize) << 2 |
-        (self.black_queen_side as usize) << 3
+        let mut castling_ind = 0;
+
+        if self.white_king_side {
+            castling_ind += 8;
+        }
+
+        if self.white_queen_side {
+            castling_ind += 4;
+        }
+
+        if self.black_king_side {
+            castling_ind += 2;
+        }
+
+        if self.black_queen_side {
+            castling_ind += 1;
+        }
+
+        castling_ind
     }
 }
 
@@ -109,9 +125,20 @@ impl<T : BitInt> GameProcessor<T> for ChessProcessor {
         }
         
         // En Passant
-        if parts[3] != "-" {
-            // TODO
-            // Allows for loading FENs with en passants, but not needed for active play so I delayed it
+        if let Some(en_passant) = square_to_index(&parts[3]) {
+            let width = board.game.bounds.cols;
+            let one_back = match board.state.moving_team.next() {
+                Team::White => en_passant - width, // down 1
+                Team::Black => en_passant + width // up 1
+            };
+            let one_forward = match board.state.moving_team.next() {
+                Team::White => en_passant + width, // up 1
+                Team::Black => en_passant - width // down 1
+            };
+
+            board.state.history.push(Action::from(one_back, one_forward).with_info(1));
+
+            
         }
     }
 
@@ -141,7 +168,7 @@ impl<T : BitInt> GameProcessor<T> for ChessProcessor {
         let piece_features = pieces * squares * teams;
         let team_to_move_features = teams;
         let castling_features = 16;
-        let en_passant_features = 2 * squares;
+        let en_passant_features = (2 * squares) + 1;
 
         ZobristTable::generate(
             piece_features + team_to_move_features + castling_features + en_passant_features
@@ -156,9 +183,9 @@ impl<T : BitInt> GameProcessor<T> for ChessProcessor {
 
         let mut features = 0;
 
-        for piece in 0..board.state.pieces.len() {
-            for team in [Team::White, Team::Black] {
-                let team_index = match team { Team::White => 0, Team::Black => 1 };
+        for team in [Team::White, Team::Black] {
+            let team_index = team.index();
+            for piece in 0..board.state.pieces.len() {
                 let piece_team_board = board.state.pieces[piece as usize].and(board.state.team(team));
                 for square in piece_team_board.iter() {
                     attrs.push(
@@ -166,7 +193,7 @@ impl<T : BitInt> GameProcessor<T> for ChessProcessor {
                     );
                 }
             }
-        }   
+        }
 
         features += squares * pieces * 2;
 
@@ -182,6 +209,8 @@ impl<T : BitInt> GameProcessor<T> for ChessProcessor {
 
         features += 16;
 
+        let mut en_passant = false;
+
         if let Some(last_move) = board.state.history.last() {
             let pawn_ind = board.required_pieces[2];
             let last_piece_index = board.state.mailbox[last_move.to as usize] - 1;
@@ -190,10 +219,15 @@ impl<T : BitInt> GameProcessor<T> for ChessProcessor {
             if was_pawn_move {
                 let was_double_move = last_move.to.abs_diff(last_move.from) == 16;
                 if was_double_move {
-                    let team_index = match board.state.moving_team { Team::White => 0, Team::Black => 1 };
+                    en_passant = true;
+                    let team_index = board.state.moving_team.index();
                     attrs.push((last_move.to as usize) + (squares * team_index) + features);
                 }
             }
+        }
+
+        if !en_passant {
+            attrs.push(features + (squares * 2));
         }
 
         table.compute(&attrs)
@@ -217,5 +251,41 @@ impl GameTemplate for Chess {
             bounds: Bounds::new(8, 8),
             default_pos: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::{HashMap, HashSet};
+
+    use crate::{chess::Chess, game::{suite::{parse_suite, test_suite}, GameTemplate}};
+
+    use super::{suite::CHESS_SUITE, test_positions::TEST_POSITIONS};
+
+    #[test]
+    fn chess_zobrist() {
+        let chess = Chess::create::<u64>();
+        let mut board = chess.default();
+
+        let table = chess.processor.gen_zobrist(&mut board);
+        let mut hashes = HashMap::new();
+
+        let mut collisions = 0;
+
+        for position in TEST_POSITIONS.split("\n") {
+            board = chess.load(&position);
+            let hash = chess.processor.hash(&mut board, &table);
+
+            if hashes.contains_key(&hash) {
+                println!("COLLISION! {}", hash);
+                println!("- {}", position);
+                println!("- {}", hashes.get(&hash).expect("Value found"));
+                collisions += 1;
+            } else {
+                hashes.insert(hash, position);
+            }
+        }
+
+        println!("{} collisions ({} positions)", collisions, hashes.len());
     }
 }

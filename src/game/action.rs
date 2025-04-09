@@ -23,6 +23,25 @@ pub fn index_to_square(index: u8) -> String {
     format!("{}{}", file_char, rank_char)
 }
 
+pub fn square_to_index(square: &str) -> Option<u8> {
+    let bytes = square.as_bytes();
+    if bytes.len() != 2 {
+        return None;
+    }
+
+    let file = bytes[0];
+    let rank = bytes[1];
+
+    if file < b'a' || file > b'h' || rank < b'1' || rank > b'8' {
+        return None;
+    }
+
+    let file_index = file - b'a';
+    let rank_index = rank - b'1';
+
+    Some(rank_index * 8 + file_index)
+}
+
 impl Action {
     pub fn from(from: u8, to: u8) -> Action {
         Action { from, to, info: 0 }
