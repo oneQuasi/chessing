@@ -90,6 +90,13 @@ impl Team {
             Team::Black => Team::White
         }
     }
+
+    pub fn index(self) -> usize {
+        match self {
+            Team::White => 0,
+            Team::Black => 1
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
