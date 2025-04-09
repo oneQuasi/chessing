@@ -77,7 +77,7 @@ impl<T : BitInt> GameProcessor<T> for ChessProcessor {
             board.state.moving_team = board.state.moving_team.next();
 
             if captures.and(king).is_set() {
-                GameState::Win(board.state.moving_team)
+                GameState::Win(board.state.moving_team.next())
             } else {
                 GameState::Draw
             }

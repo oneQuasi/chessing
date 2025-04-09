@@ -2,11 +2,13 @@ use fancy_regex::{Captures, Regex};
 
 use super::Uci;
 
+#[derive(Debug)]
 pub enum UciPosition {
     Startpos,
     Fen(String)
 }
 
+#[derive(Debug)]
 pub enum GoOption {
     WTime(u64),
     BTime(u64),
@@ -15,6 +17,7 @@ pub enum GoOption {
     MovesToGo(u64)
 }
 
+#[derive(Debug)]
 pub enum UciCommand {
     Uci(),
     Position {
@@ -53,7 +56,7 @@ fn parse_and_push(caps: &Captures, name: &str, constructor: fn(u64) -> GoOption,
 impl Uci {
     pub fn parse(&self, cmd: &str) -> UciCommand {
         let go_regex = Regex::new(
-            r"(?:(?:wtime (?P<wtime>\d+))|(?:btime (?P<btime>\d+))|(?:winc (?P<winc>\d+))|(?:binc (?P<binc>\d+))|(?:movestogo (?P<movestogo>\d+)))*"
+            r"^go (?:(?:(?:wtime (?P<wtime>\d+))|(?:btime (?P<btime>\d+))|(?:winc (?P<winc>\d+))|(?:binc (?P<binc>\d+))|(?:movestogo (?P<movestogo>\d+))) ?)*$"
         ).unwrap();
     
         let startpos_regex = Regex::new("position startpos(?: moves (?<moves>.*))?").unwrap();
