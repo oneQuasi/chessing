@@ -1,4 +1,4 @@
-use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action, HistoryState, HistoryUpdate::{self, Mailbox}}, piece::{Piece, PieceProcessor}, Board, BoardState, Team}};
+use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action, HistoryState, HistoryUpdate::{self}}, piece::{Piece, PieceProcessor}, Board, BoardState, Team}};
 
 fn make_castling_move<T : BitInt>(state: &mut BoardState<T>, action: Action) -> HistoryState<T> {
     let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(7);

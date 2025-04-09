@@ -1,4 +1,4 @@
-use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action, HistoryState, HistoryUpdate::{self, Mailbox}}, piece::{self, Piece, PieceProcessor}, Board, BoardState, Team}};
+use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action, HistoryState, HistoryUpdate::{self}}, piece::{Piece, PieceProcessor}, Board, BoardState, Team}};
 
 #[inline(always)]
 fn list_white_pawn_captures<T : BitInt>(board: &mut Board<T>, piece_index: usize) -> BitBoard<T> {

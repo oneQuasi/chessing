@@ -1,8 +1,8 @@
 use crate::bitboard::{BitBoard, BitInt};
 
-use super::{Board, BoardState, Team};
+use super::{BoardState, Team};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Action {
     pub from: u8,
     pub to: u8,
