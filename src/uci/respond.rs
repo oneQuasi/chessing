@@ -17,26 +17,32 @@ pub struct Info {
 
 impl Uci {
     pub fn id_author(&self, author: &str) {
+        if !self.log { return; }
         println!("id author {}", author);
     }
 
     pub fn id_name(&self, name: &str) {
+        if !self.log { return; }
         println!("id name {}", name);
     }
 
     pub fn uciok(&self) {
+        if !self.log { return; }
         println!("uciok");
     }
 
     pub fn readyok(&self) {
+        if !self.log { return; }
         println!("readyok");
     }
 
     pub fn bestmove(&self, act: &str) {
+        if !self.log { return; }
         println!("bestmove {}", act);
     }
 
     pub fn info(&self, info: Info) {
+        if !self.log { return; }
         let mut output = String::from("info");
 
         if let Some(depth) = info.depth {
