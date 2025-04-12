@@ -71,6 +71,8 @@ pub enum GameState {
 /// `GameProcessor` handles managing game specific processing.
 pub trait GameProcessor<T : BitInt> {
     fn load(&self, board: &mut Board<T>, pos: &str);
+    fn save(&self, board: &mut Board<T>) -> String;
+
     fn is_legal(&self, board: &mut Board<T>) -> bool;
     fn game_state(&self, board: &mut Board<T>, legal_actions: &[Action]) -> GameState;
     fn gen_zobrist(&self, board: &mut Board<T>, seed: u64) -> ZobristTable;

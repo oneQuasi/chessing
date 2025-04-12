@@ -137,9 +137,109 @@ impl<T : BitInt> GameProcessor<T> for ChessProcessor {
             };
 
             board.state.history.push(ActionRecord::Action(Action::from(one_back, one_forward, pawn_ind as u8).with_info(1)));
-
-            
         }
+    }
+
+    fn save(&self, board: &mut Board<T>) -> String {
+        // 1. Piece Placement
+        let mut piece_rows = Vec::new();
+        for row in (0..board.game.bounds.rows).rev() {
+            let mut row_str = String::new();
+            let mut empty_count = 0;
+    
+            for col in 0..board.game.bounds.cols {
+                let idx = row * board.game.bounds.cols + col;
+                let mut found = false;
+    
+                for (piece_index, piece_board) in board.state.pieces.iter().enumerate() {
+                    if piece_board.and(BitBoard::index(idx)).is_set() {
+                        let team = if board.state.white.and(BitBoard::index(idx)).is_set() {
+                            Team::White
+                        } else {
+                            Team::Black
+                        };
+    
+                        if empty_count > 0 {
+                            row_str.push_str(&empty_count.to_string());
+                            empty_count = 0;
+                        }
+    
+                        let piece_char = board.game.pieces[piece_index].symbol.clone();
+                        row_str.push_str(&match team {
+                            Team::White => piece_char.to_ascii_uppercase(),
+                            Team::Black => piece_char.to_ascii_lowercase(),
+                        });
+    
+                        found = true;
+                        break;
+                    }
+                }
+    
+                if !found {
+                    empty_count += 1;
+                }
+            }
+    
+            if empty_count > 0 {
+                row_str.push_str(&empty_count.to_string());
+            }
+    
+            piece_rows.push(row_str);
+        }
+    
+        let piece_placement = piece_rows.join("/");
+    
+        // 2. Active Color
+        let active_color = match board.state.moving_team {
+            Team::White => "w",
+            Team::Black => "b",
+        };
+    
+        // 3. Castling Availability
+        let left_side = BitBoard::edges_left(board.game.bounds, board.game.bounds.cols / 2);
+        let right_side = BitBoard::edges_right(board.game.bounds, board.game.bounds.cols / 2);
+    
+        let rook_ind = board.required_pieces[1];
+        let mut castling = String::new();
+    
+        if board.state.first_move.and(board.state.white.and(right_side)).or(board.state.pieces[rook_ind].and(board.state.white).and(right_side)).is_empty() == false {
+            castling.push('K');
+        }
+        if board.state.first_move.and(board.state.white.and(left_side)).or(board.state.pieces[rook_ind].and(board.state.white).and(left_side)).is_empty() == false {
+            castling.push('Q');
+        }
+        if board.state.first_move.and(board.state.black.and(right_side)).or(board.state.pieces[rook_ind].and(board.state.black).and(right_side)).is_empty() == false {
+            castling.push('k');
+        }
+        if board.state.first_move.and(board.state.black.and(left_side)).or(board.state.pieces[rook_ind].and(board.state.black).and(left_side)).is_empty() == false {
+            castling.push('q');
+        }
+    
+        if castling.is_empty() {
+            castling.push('-');
+        }
+    
+        // 4. En Passant
+        let mut en_passant = "-".to_string();
+    
+        if let Some(ActionRecord::Action(last_move)) = board.state.history.last() {
+            let pawn_ind = board.required_pieces[2];
+            let last_piece_index = board.state.mailbox[last_move.to as usize] - 1;
+            let was_pawn_move = last_piece_index == pawn_ind as u8;
+    
+            if was_pawn_move {
+                let diff = last_move.to.abs_diff(last_move.from);
+                if diff == board.game.bounds.cols * 2 {
+                    let square = match board.state.moving_team.next() {
+                        Team::White => last_move.to - board.game.bounds.cols,
+                        Team::Black => last_move.to + board.game.bounds.cols,
+                    };
+                    en_passant = index_to_square(square);
+                }
+            }
+        }
+    
+        format!("{} {} {} {} 0 1", piece_placement, active_color, castling, en_passant)
     }
 
     fn game_state(&self, board: &mut Board<T>, actions: &[Action]) -> crate::game::GameState {
@@ -288,5 +388,28 @@ mod tests {
         }
 
         println!("{} collisions ({} positions)", collisions, hashes.len());
+        assert_eq!(collisions, 0);
+    }
+
+    #[test]
+    fn chess_fens() {
+        let chess = Chess::create::<u64>();
+
+        let mut positions = HashSet::<String>::new();
+        let mut collisions = 0;
+
+        for position in TEST_POSITIONS.split("\n") {
+            let mut board = chess.load(&position);
+            let out = board.game.processor.save(&mut board);
+
+            if positions.contains(&out) {
+                collisions += 1;
+            }
+
+            positions.insert(out);
+        }
+
+        println!("{} collisions", collisions);
+        assert_eq!(collisions, 0);
     }
 }
