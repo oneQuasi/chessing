@@ -1,6 +1,6 @@
 use rustc_hash::FxHashMap as HashMap;
 
-use action::{Action, HistoryState, HistoryUpdate};
+use action::{ActionRecord, Action, HistoryState, HistoryUpdate};
 use piece::Piece;
 use zobrist::ZobristTable;
 
@@ -115,7 +115,7 @@ pub struct BoardState<T : BitInt> {
 
     pub mailbox: Vec<u8>,
 
-    pub history: Vec<Action>
+    pub history: Vec<ActionRecord>
 }
 
 impl<T : BitInt> BoardState<T> {
@@ -303,13 +303,19 @@ impl<'a, T : BitInt> Board<'a, T> {
         self.play(act)
     }
     
+    pub fn play_null(&mut self) -> HistoryState<T> {
+        self.state.moving_team = self.state.moving_team.next();
+        self.state.history.push(ActionRecord::Null());
+
+        HistoryState(vec![])
+    }
 
     pub fn play(&mut self, action: Action) -> HistoryState<T> {
         let piece_index = self.state.mailbox[action.from as usize] - 1;
         let state = self.game.pieces[piece_index as usize].processor.make_move(self, action);
         self.state.moving_team = self.state.moving_team.next();
 
-        self.state.history.push(action);
+        self.state.history.push(ActionRecord::Action(action));
         state
     }
 }

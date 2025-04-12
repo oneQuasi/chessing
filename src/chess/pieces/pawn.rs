@@ -1,4 +1,4 @@
-use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action, HistoryState, HistoryUpdate::{self}}, piece::{Piece, PieceProcessor}, Board, BoardState, Team}};
+use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action, ActionRecord, HistoryState, HistoryUpdate::{self}}, piece::{Piece, PieceProcessor}, Board, BoardState, Team}};
 
 #[inline(always)]
 fn list_white_pawn_captures<T : BitInt>(board: &mut Board<T>, piece_index: usize) -> BitBoard<T> {
@@ -74,25 +74,26 @@ fn list_white_pawn_actions<T: BitInt>(board: &mut Board<T>, piece_index: usize) 
     let right_captures = possible_right_captures.and(black);
 
     let mut actions: Vec<Action> = Vec::with_capacity(pawns.count() as usize);
+    let piece = piece_index as u8;
 
     for movement in moves.iter() {
         let movement = movement as u8;
-        add_white_action(board, &mut actions, Action::from(movement - 8, movement));
+        add_white_action(board, &mut actions, Action::from(movement - 8, movement, piece));
     }
     for movement in first_moves.iter() {
         let movement = movement as u8;
-        add_white_action(board, &mut actions, Action::from(movement - 16, movement));
+        add_white_action(board, &mut actions, Action::from(movement - 16, movement, piece));
     }
     for movement in left_captures.iter() {
         let movement = movement as u8;
-        add_white_action(board, &mut actions, Action::from(movement - 8 + 1, movement));
+        add_white_action(board, &mut actions, Action::from(movement - 8 + 1, movement, piece));
     }
     for movement in right_captures.iter() {
         let movement = movement as u8;
-        add_white_action(board, &mut actions, Action::from(movement - 8 - 1, movement));
+        add_white_action(board, &mut actions, Action::from(movement - 8 - 1, movement, piece));
     }
 
-    if let Some(last_move) = board.state.history.last() {
+    if let Some(ActionRecord::Action(last_move)) = board.state.history.last() {
         let last_piece_index = board.state.mailbox[last_move.to as usize] - 1;
         let was_pawn_move = last_piece_index == piece_index as u8;
 
@@ -102,11 +103,11 @@ fn list_white_pawn_actions<T: BitInt>(board: &mut Board<T>, piece_index: usize) 
                 let capture = last_move.from - 8;
                 let target = BitBoard::<T>::index(capture.into());
                 if possible_left_captures.and(target).is_set() {
-                    add_white_action(board, &mut actions, Action::from(capture - 8 + 1, capture).with_info(1));
+                    add_white_action(board, &mut actions, Action::from(capture - 8 + 1, capture, piece).with_info(1));
                 }
 
                 if possible_right_captures.and(target).is_set() {
-                    add_white_action(board, &mut actions, Action::from(capture - 8 - 1, capture).with_info(1));
+                    add_white_action(board, &mut actions, Action::from(capture - 8 - 1, capture, piece).with_info(1));
                 }
             }
         }
@@ -142,24 +143,26 @@ fn list_black_pawn_actions<T: BitInt>(board: &mut Board<T>, piece_index: usize) 
 
     let mut actions: Vec<Action> = Vec::with_capacity(pawns.count() as usize);
 
+    let piece = piece_index as u8;
+
     for movement in moves.iter() {
         let movement = movement as u8;
-        add_black_action(board, &mut actions, Action::from(movement + 8, movement));
+        add_black_action(board, &mut actions, Action::from(movement + 8, movement, piece));
     }
     for movement in first_moves.iter() {
         let movement = movement as u8;
-        add_black_action(board, &mut actions, Action::from(movement + 16, movement));
+        add_black_action(board, &mut actions, Action::from(movement + 16, movement, piece));
     }
     for movement in left_captures.iter() {
         let movement = movement as u8;
-        add_black_action(board, &mut actions, Action::from(movement + 8 + 1, movement));
+        add_black_action(board, &mut actions, Action::from(movement + 8 + 1, movement, piece));
     }
     for movement in right_captures.iter() {
         let movement = movement as u8;
-        add_black_action(board, &mut actions, Action::from(movement + 8 - 1, movement));
+        add_black_action(board, &mut actions, Action::from(movement + 8 - 1, movement, piece));
     }
 
-    if let Some(last_move) = board.state.history.last() {
+    if let Some(ActionRecord::Action(last_move)) = board.state.history.last() {
         let last_piece_index = board.state.mailbox[last_move.to as usize] - 1;
         let was_pawn_move = last_piece_index == piece_index as u8;
 
@@ -169,11 +172,11 @@ fn list_black_pawn_actions<T: BitInt>(board: &mut Board<T>, piece_index: usize) 
                 let capture = last_move.from + 8;
                 let target = BitBoard::<T>::index(capture.into());
                 if possible_left_captures.and(target).is_set() {
-                    add_black_action(board, &mut actions, Action::from(capture + 8 + 1, capture).with_info(1));
+                    add_black_action(board, &mut actions, Action::from(capture + 8 + 1, capture, piece).with_info(1));
                 }
 
                 if possible_right_captures.and(target).is_set() {
-                    add_black_action(board, &mut actions, Action::from(capture + 8 - 1, capture).with_info(1));
+                    add_black_action(board, &mut actions, Action::from(capture + 8 - 1, capture, piece).with_info(1));
                 }
             }
         }

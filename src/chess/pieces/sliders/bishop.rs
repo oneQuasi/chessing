@@ -64,6 +64,7 @@ impl<T : BitInt> PieceProcessor<T> for BishopProcess {
 
         let mut actions: Vec<Action> = Vec::with_capacity(4);
 
+        let piece = piece_index as u8;
         for bishop in bishops.and(moving_team).iter() {
             let pos = bishop as usize;
             let stored_pos = bishop as u8;
@@ -75,7 +76,7 @@ impl<T : BitInt> PieceProcessor<T> for BishopProcess {
 
             let moves = up_right.or(up_left).or(down_right).or(down_left).and_not(moving_team);
             for movement in moves.iter() {
-                actions.push(Action::from(stored_pos, movement as u8))
+                actions.push(Action::from(stored_pos, movement as u8, piece))
             }
         }
 

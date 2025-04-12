@@ -1,12 +1,19 @@
 use crate::bitboard::{BitBoard, BitInt};
 
-use super::{BoardState, Team};
+use super::{Board, BoardState, Team};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Action {
     pub from: u8,
     pub to: u8,
-    pub info: u8
+    pub info: u8,
+    pub piece: u8
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ActionRecord {
+    Action(Action),
+    Null()
 }
 
 pub fn index_to_square(index: u8) -> String {
@@ -43,15 +50,16 @@ pub fn square_to_index(square: &str) -> Option<u8> {
 }
 
 impl Action {
-    pub fn from(from: u8, to: u8) -> Action {
-        Action { from, to, info: 0 }
+    pub fn from(from: u8, to: u8, piece: u8) -> Action {
+        Action { from, to, piece, info: 0 }
     }
 
     pub fn with_info(self, info: u8) -> Action {
-        Action { from: self.from, to: self.to, info }
+        Action { from: self.from, to: self.to, piece: self.piece, info }
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum HistoryUpdate<T : BitInt> {
     White(BitBoard<T>),
     Black(BitBoard<T>),
@@ -60,8 +68,30 @@ pub enum HistoryUpdate<T : BitInt> {
     Mailbox(u8, u8)
 }
 
+#[derive(Clone)]
 
 pub struct HistoryState<T : BitInt> (pub Vec<HistoryUpdate<T>>);
+
+pub fn restore_perfectly<T : BitInt>(board: &mut Board<T>) -> HistoryState<T> {
+    let squares = (board.game.bounds.rows * board.game.bounds.cols) as usize;
+    let pieces = board.game.pieces.len();
+
+    let mut updates = vec![];
+
+    for square in 0..squares {
+        updates.push(HistoryUpdate::Mailbox(square as u8, board.state.mailbox[square]));
+    }
+
+    for piece in 0..pieces {
+        updates.push(HistoryUpdate::Piece(piece as u8, board.state.pieces[piece]));
+    }
+    
+    updates.push(HistoryUpdate::White(board.state.white));
+    updates.push(HistoryUpdate::Black(board.state.black));
+    updates.push(HistoryUpdate::FirstMove(board.state.first_move));
+
+    HistoryState(updates)
+}
 
 #[inline(always)]
 pub fn make_chess_move<T : BitInt>(state: &mut BoardState<T>, action: Action) -> HistoryState<T> {

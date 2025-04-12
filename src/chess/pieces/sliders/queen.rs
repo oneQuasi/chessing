@@ -97,6 +97,7 @@ impl<T: BitInt> PieceProcessor<T> for QueenProcess {
         let moving_team = board.state.team_to_move();
         let mut actions: Vec<Action> = Vec::with_capacity(4);
 
+        let piece = piece_index as u8;
         for queen in board.state.pieces[piece_index].and(moving_team).iter() {
             let pos = queen as usize;
             let stored_pos = queen as u8;
@@ -113,7 +114,7 @@ impl<T: BitInt> PieceProcessor<T> for QueenProcess {
 
             let moves = up.or(down).or(left).or(right).or(up_right).or(up_left).or(down_right).or(down_left).and_not(moving_team);
             for movement in moves.iter() {
-                actions.push(Action::from(stored_pos, movement as u8))
+                actions.push(Action::from(stored_pos, movement as u8, piece))
             }
         }
 

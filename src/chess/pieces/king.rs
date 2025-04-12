@@ -85,12 +85,13 @@ impl<T : BitInt> PieceProcessor<T> for KingProcess {
     fn list_actions(&self, board: &mut Board<T>, piece_index: usize) -> Vec<Action> {
         let moving_team = board.state.team_to_move();
         let mut actions: Vec<Action> = Vec::with_capacity(8);
+        let piece = piece_index as u8;
 
         for king in board.state.pieces[piece_index].and(moving_team).iter() {
             let pos = king as u8;
             let moves = board.lookup[piece_index][0][king as usize].and_not(moving_team);
             for movement in moves.iter() {
-                actions.push(Action::from(pos, movement as u8))
+                actions.push(Action::from(pos, movement as u8, piece))
             }
 
             // Castling: Rook is required
@@ -124,7 +125,7 @@ impl<T : BitInt> PieceProcessor<T> for KingProcess {
                     }
 
                     // We can castle! This move is represented as king goes to where the rook is.
-                    actions.push(Action::from(pos, rook as u8).with_info(1));
+                    actions.push(Action::from(pos, rook as u8, piece).with_info(1));
                 }
             }
         }

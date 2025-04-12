@@ -1,8 +1,8 @@
 
 
-use pieces::{king::create_king, knight::create_knight, pawn::create_pawn, sliders::{bishop::create_bishop, queen::create_queen, rook::create_rook}};
+use pieces::{king::create_king, knight::create_knight, pawn::{self, create_pawn}, sliders::{bishop::create_bishop, queen::create_queen, rook::create_rook}};
 
-use crate::{bitboard::{BitBoard, BitInt, Bounds}, game::{action::{index_to_square, square_to_index, Action}, zobrist::ZobristTable, Board, Game, GameProcessor, GameState, GameTemplate, Team}};
+use crate::{bitboard::{BitBoard, BitInt, Bounds}, game::{action::{index_to_square, square_to_index, Action, ActionRecord}, zobrist::ZobristTable, Board, Game, GameProcessor, GameState, GameTemplate, Team}};
 
 pub mod pieces;
 pub mod suite;
@@ -136,7 +136,7 @@ impl<T : BitInt> GameProcessor<T> for ChessProcessor {
                 Team::Black => en_passant - width // down 1
             };
 
-            board.state.history.push(Action::from(one_back, one_forward).with_info(1));
+            board.state.history.push(ActionRecord::Action(Action::from(one_back, one_forward, pawn_ind as u8).with_info(1)));
 
             
         }
@@ -212,7 +212,7 @@ impl<T : BitInt> GameProcessor<T> for ChessProcessor {
 
         let mut en_passant = false;
 
-        if let Some(last_move) = board.state.history.last() {
+        if let Some(ActionRecord::Action(last_move)) = board.state.history.last() {
             let pawn_ind = board.required_pieces[2];
             let last_piece_index = board.state.mailbox[last_move.to as usize] - 1;
             let was_pawn_move = last_piece_index == pawn_ind as u8;
