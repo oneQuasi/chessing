@@ -1,4 +1,4 @@
-use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action}, piece::{Piece, PieceRules}, Board, BoardState, Game, Team}};
+use crate::{bitboard::{BitBoard, BitInt}, chess::ROOK, game::{action::{index_to_square, make_chess_move, Action}, piece::{Piece, PieceRules}, Board, BoardState, Game, Team}};
 
 fn make_castling_move<T : BitInt>(state: &mut BoardState<T>, action: Action) {
     let piece_index = state.mailbox[action.from as usize] - 1;
@@ -81,34 +81,30 @@ impl<T : BitInt> PieceRules<T> for KingRules {
             let king_in_place = board.state.first_move.and(BitBoard::index(pos)).is_set();
             if !king_in_place { continue; }
 
-            let rook_ind = board.find_piece("rook");
-
-            if let Some(rook_ind) = rook_ind {
-                for rook in board.state.pieces[rook_ind].and(moving_team).and(board.state.first_move).iter() {
-                    let between_squares = BitBoard::between(king as usize, rook as usize);
-                    
-                    // Can't castle if other pieces are in the way.
-                    if between_squares.and(board.state.black.or(board.state.white)).is_set() {
-                        continue;
-                    }
-                    
-                    let king_dest = if rook > king { king + 2 } else { king - 2 };
-                    let between_dest_squares = BitBoard::between_inclusive(king as usize, king_dest as usize);
-
-                    // We'll need the capture mask of the opp team
-                    board.state.moving_team = board.state.moving_team.next();
-                    let mask = board.list_captures(between_dest_squares);
-                    board.state.moving_team = board.state.moving_team.next();
-
-
-                    // We can't castle through check or while in check, so we'll have to check if that's the case.
-                    if between_dest_squares.or(BitBoard::index(pos)).and(mask).is_set() {
-                        continue;
-                    }
-
-                    // We can castle! This move is represented as king goes to where the rook is.
-                    actions.push(Action::from(pos, rook as u8, piece).with_info(1));
+            for rook in board.state.pieces[ROOK].and(moving_team).and(board.state.first_move).iter() {
+                let between_squares = BitBoard::between(king as usize, rook as usize);
+                
+                // Can't castle if other pieces are in the way.
+                if between_squares.and(board.state.black.or(board.state.white)).is_set() {
+                    continue;
                 }
+                
+                let king_dest = if rook > king { king + 2 } else { king - 2 };
+                let between_dest_squares = BitBoard::between_inclusive(king as usize, king_dest as usize);
+
+                // We'll need the capture mask of the opp team
+                board.state.moving_team = board.state.moving_team.next();
+                let mask = board.list_captures(between_dest_squares);
+                board.state.moving_team = board.state.moving_team.next();
+
+
+                // We can't castle through check or while in check, so we'll have to check if that's the case.
+                if between_dest_squares.or(BitBoard::index(pos)).and(mask).is_set() {
+                    continue;
+                }
+
+                // We can castle! This move is represented as king goes to where the rook is.
+                actions.push(Action::from(pos, rook as u8, piece).with_info(1));
             }
         }
     

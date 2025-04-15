@@ -8,6 +8,15 @@ pub mod pieces;
 pub mod suite;
 mod test_positions;
 
+// For other variants, these constants will need to be redefined. Oops!
+
+pub const PAWN: usize = 0;
+pub const KNIGHT: usize = 1;
+pub const BISHOP: usize = 2;
+pub const ROOK: usize = 3;
+pub const QUEEN: usize = 4;
+pub const KING: usize = 5;
+
 struct CastlingRights {
     white_king_side: bool,
     white_queen_side: bool,
@@ -39,11 +48,11 @@ impl CastlingRights {
     }
 }
 
-fn extract_castling_rights<T : BitInt>(board: &Board<T>, rook_ind: usize) -> CastlingRights {
+fn extract_castling_rights<T : BitInt>(board: &Board<T>) -> CastlingRights {
     let left_side = BitBoard::edges_left(board.game.bounds, board.game.bounds.cols / 2);
     let right_side = BitBoard::edges_right(board.game.bounds, board.game.bounds.cols / 2);
 
-    let unmoved_rooks = board.state.first_move.and(board.state.pieces[rook_ind]);
+    let unmoved_rooks = board.state.first_move.and(board.state.pieces[ROOK]);
 
     CastlingRights {
         white_king_side: unmoved_rooks
@@ -72,8 +81,7 @@ pub struct ChessProcessor;
 
 impl<T : BitInt> GameRules<T> for ChessProcessor {
     fn is_legal(&self, board: &mut Board<T>) -> bool {
-        let king_ind = board.required_pieces[0];
-        let king = board.state.pieces[king_ind].and(board.state.opposite_team());
+        let king = board.state.pieces[KING].and(board.state.opposite_team());
         let mask = board.list_captures(king);
 
         mask.and(king).is_empty()
@@ -91,14 +99,6 @@ impl<T : BitInt> GameRules<T> for ChessProcessor {
         let left_side = BitBoard::edges_left(board.game.bounds, board.game.bounds.cols / 2);
         let right_side = BitBoard::edges_right(board.game.bounds, board.game.bounds.cols / 2);
 
-        let king_ind = board.find_piece("king").expect("Cannot handle castling rights w/o king");
-        let rook_ind = board.find_piece("rook").expect("Cannot handle castling rights w/o rook");
-        let pawn_ind = board.find_piece("pawn").expect("Cannot handle en passant w/o pawn");
-
-        board.required_pieces.push(king_ind);
-        board.required_pieces.push(rook_ind);
-        board.required_pieces.push(pawn_ind);
-
         // If a `Game` is constructed using `ChessProcessor`, we won't know the order of `king` and `rook`.
         // Therefore, we can't be sure those pieces are at any given index.
         // `required_pieces` allows us to save the index of them for use in `is_legal` so that we don't need to deal with hashes.
@@ -106,22 +106,22 @@ impl<T : BitInt> GameRules<T> for ChessProcessor {
         // Castling Rights
         if !parts[2].contains("K") {
             board.state.first_move = board.state.first_move
-                .xor(board.state.pieces[rook_ind].and(board.state.white).and(right_side));
+                .xor(board.state.pieces[ROOK].and(board.state.white).and(right_side));
         }
 
         if !parts[2].contains("Q") {
             board.state.first_move = board.state.first_move
-                .xor(board.state.pieces[rook_ind].and(board.state.white).and(left_side));
+                .xor(board.state.pieces[ROOK].and(board.state.white).and(left_side));
         }
 
         if !parts[2].contains("k") {
             board.state.first_move = board.state.first_move
-                .xor(board.state.pieces[rook_ind].and(board.state.black).and(right_side));
+                .xor(board.state.pieces[ROOK].and(board.state.black).and(right_side));
         }
 
         if !parts[2].contains("q") {
             board.state.first_move = board.state.first_move
-                .xor(board.state.pieces[rook_ind].and(board.state.black).and(left_side));
+                .xor(board.state.pieces[ROOK].and(board.state.black).and(left_side));
         }
         
         // En Passant
@@ -136,7 +136,7 @@ impl<T : BitInt> GameRules<T> for ChessProcessor {
                 Team::Black => en_passant - width // down 1
             };
 
-            board.history.push(ActionRecord::Action(Action::from(one_back, one_forward, pawn_ind as u8).with_info(1)));
+            board.history.push(ActionRecord::Action(Action::from(one_back, one_forward, PAWN as u8).with_info(1)));
         }
     }
 
@@ -199,19 +199,18 @@ impl<T : BitInt> GameRules<T> for ChessProcessor {
         let left_side = BitBoard::edges_left(board.game.bounds, board.game.bounds.cols / 2);
         let right_side = BitBoard::edges_right(board.game.bounds, board.game.bounds.cols / 2);
     
-        let rook_ind = board.required_pieces[1];
         let mut castling = String::new();
     
-        if board.state.first_move.and(board.state.white.and(right_side)).or(board.state.pieces[rook_ind].and(board.state.white).and(right_side)).is_empty() == false {
+        if board.state.first_move.and(board.state.white.and(right_side)).or(board.state.pieces[ROOK].and(board.state.white).and(right_side)).is_empty() == false {
             castling.push('K');
         }
-        if board.state.first_move.and(board.state.white.and(left_side)).or(board.state.pieces[rook_ind].and(board.state.white).and(left_side)).is_empty() == false {
+        if board.state.first_move.and(board.state.white.and(left_side)).or(board.state.pieces[ROOK].and(board.state.white).and(left_side)).is_empty() == false {
             castling.push('Q');
         }
-        if board.state.first_move.and(board.state.black.and(right_side)).or(board.state.pieces[rook_ind].and(board.state.black).and(right_side)).is_empty() == false {
+        if board.state.first_move.and(board.state.black.and(right_side)).or(board.state.pieces[ROOK].and(board.state.black).and(right_side)).is_empty() == false {
             castling.push('k');
         }
-        if board.state.first_move.and(board.state.black.and(left_side)).or(board.state.pieces[rook_ind].and(board.state.black).and(left_side)).is_empty() == false {
+        if board.state.first_move.and(board.state.black.and(left_side)).or(board.state.pieces[ROOK].and(board.state.black).and(left_side)).is_empty() == false {
             castling.push('q');
         }
     
@@ -223,9 +222,8 @@ impl<T : BitInt> GameRules<T> for ChessProcessor {
         let mut en_passant = "-".to_string();
     
         if let Some(ActionRecord::Action(last_move)) = board.history.last() {
-            let pawn_ind = board.required_pieces[2];
             let last_piece_index = board.state.mailbox[last_move.to as usize] - 1;
-            let was_pawn_move = last_piece_index == pawn_ind as u8;
+            let was_pawn_move = last_piece_index == PAWN as u8;
     
             if was_pawn_move {
                 let diff = last_move.to.abs_diff(last_move.from);
@@ -244,8 +242,7 @@ impl<T : BitInt> GameRules<T> for ChessProcessor {
 
     fn game_state(&self, board: &mut Board<T>, actions: &[Action]) -> crate::game::GameState {
         if actions.len() == 0 {
-            let king_ind = board.find_piece("king").expect("King is required for chess");
-            let king = board.state.pieces[king_ind].and(board.state.team_to_move());
+            let king = board.state.pieces[KING].and(board.state.team_to_move());
             board.state.moving_team = board.state.moving_team.next();
             let captures = board.list_captures(king);
             board.state.moving_team = board.state.moving_team.next();
@@ -303,8 +300,7 @@ impl<T : BitInt> GameRules<T> for ChessProcessor {
 
         features += 2;
 
-        let rook_ind = board.required_pieces[1];
-        let castling_rights = extract_castling_rights(board, rook_ind);
+        let castling_rights = extract_castling_rights(board);
         let castling_index = castling_rights.index();
         attrs.push(castling_index + features);
 
@@ -313,9 +309,8 @@ impl<T : BitInt> GameRules<T> for ChessProcessor {
         let mut en_passant = false;
 
         if let Some(ActionRecord::Action(last_move)) = board.history.last() {
-            let pawn_ind = board.required_pieces[2];
             let last_piece_index = board.state.mailbox[last_move.to as usize] - 1;
-            let was_pawn_move = last_piece_index == pawn_ind as u8;
+            let was_pawn_move = last_piece_index == PAWN as u8;
     
             if was_pawn_move {
                 let was_double_move = last_move.to.abs_diff(last_move.from) == 16;

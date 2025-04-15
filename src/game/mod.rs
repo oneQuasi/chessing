@@ -97,9 +97,6 @@ impl Team {
 pub struct Board<'a, T : BitInt> {
     pub game: &'a Game<T>,
     pub state: BoardState<T>,
-    pub piece_map: HashMap<String, usize>,
-    /// A cache of important piece indexes guaranteed by the game processor.
-    pub required_pieces: Vec<usize>,
     pub history: Vec<ActionRecord>
 }
 
@@ -157,26 +154,13 @@ impl<'a, T : BitInt> Board<'a, T> {
         Self {
             game,
             state: BoardState::new(),
-            piece_map: HashMap::default(),
-            required_pieces: vec![],
             history: vec![]
         }
-    }
-
-    /// Since variants are supported as a first-class feature, the index of a given piece type might not be fixed.
-    /// `piece_map` allows for easy access of other pieces based on names, avoiding conflicts.
-    #[inline(always)]
-    pub fn find_piece(&self, name: &str) -> Option<usize> {
-        self.piece_map.get(name).copied()
     }
 
     pub fn load(&mut self, pos: &str) {
         for _ in 0..(self.game.bounds.rows * self.game.bounds.cols) {
             self.state.mailbox.push(0);
-        }
-
-        for (index, piece) in self.game.pieces.iter().enumerate() {
-            self.piece_map.insert(piece.name.clone(), index);
         }
 
         self.game.rules.load(self, pos);
