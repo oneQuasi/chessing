@@ -1,5 +1,5 @@
 
-use crate::{bitboard::{BitBoard, BitInt}, game::{action::{make_chess_move, Action, HistoryState}, piece::{Piece, PieceProcessor}, Board}};
+use crate::{bitboard::{BitBoard, BitInt}, game::{action::{make_chess_move, Action}, piece::{Piece, PieceProcessor}, Board}};
 
 use super::{ray_attacks_backward, ray_attacks_forward, repeat};
 
@@ -81,7 +81,7 @@ impl<T: BitInt> PieceProcessor<T> for RookProcess {
         actions
     }
 
-    fn make_move(&self, board: &mut Board<T>, action: Action) -> HistoryState<T> {
+    fn make_move(&self, board: &mut Board<T>, action: Action) {
         make_chess_move(&mut board.state, action)
     }
 }

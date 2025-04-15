@@ -1,6 +1,6 @@
 use rustc_hash::FxHashMap as HashMap;
 
-use action::{ActionRecord, Action, HistoryState, HistoryUpdate};
+use action::{ActionRecord, Action};
 use piece::Piece;
 use zobrist::ZobristTable;
 
@@ -23,16 +23,6 @@ pub type AttackLookup<T > = Vec<AttackDirections<T>>;
 
 /// Indexed by the piece type; find a piece's attack lookups.
 pub type PieceLookup<T > = Vec<AttackLookup<T>>;
-
-pub struct Board<'a, T : BitInt> {
-    pub game: &'a Game<T>,
-    pub state: BoardState<T>,
-    pub piece_map: HashMap<String, usize>,
-    /// A cache of important piece indexes guaranteed by the game processor.
-    pub required_pieces: Vec<usize>,
-    pub edges: Vec<Edges<T>>,
-    pub lookup: PieceLookup<T>
-}
 
 pub struct Game<T : BitInt> {
     pub processor: Box<dyn GameProcessor<T>>,
@@ -101,7 +91,19 @@ impl Team {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
+pub struct Board<'a, T : BitInt> {
+    pub game: &'a Game<T>,
+    pub state: BoardState<T>,
+    pub piece_map: HashMap<String, usize>,
+    /// A cache of important piece indexes guaranteed by the game processor.
+    pub required_pieces: Vec<usize>,
+    pub edges: Vec<Edges<T>>,
+    pub lookup: PieceLookup<T>,
+    pub history: Vec<ActionRecord>
+}
+
+#[derive(Clone)]
 pub struct BoardState<T : BitInt> {
     pub moving_team: Team,
 
@@ -115,9 +117,7 @@ pub struct BoardState<T : BitInt> {
     pub black: BitBoard<T>,
     pub pieces: Vec<BitBoard<T>>,
 
-    pub mailbox: Vec<u8>,
-
-    pub history: Vec<ActionRecord>
+    pub mailbox: Vec<u8>
 }
 
 impl<T : BitInt> BoardState<T> {
@@ -128,7 +128,6 @@ impl<T : BitInt> BoardState<T> {
             white: BitBoard::empty(),
             first_move: BitBoard::empty(),
             pieces: vec![BitBoard::empty(); 6],
-            history: vec![],
             mailbox: vec![]
         }
     }
@@ -151,29 +150,6 @@ impl<T : BitInt> BoardState<T> {
         self.team(self.moving_team.next())
     }
 
-    pub fn restore(&mut self, state: HistoryState<T>) {
-        self.moving_team = self.moving_team.next();
-        self.history.pop();
-        for change in state.0 {
-            match change {
-                HistoryUpdate::Mailbox(index, value) => {
-                    self.mailbox[index as usize] = value;
-                }
-                HistoryUpdate::Piece(index, board) => {
-                    self.pieces[index as usize] = board;
-                }
-                HistoryUpdate::White(board) => {
-                    self.white = board;
-                }
-                HistoryUpdate::Black(board) => {
-                    self.black = board;
-                }
-                HistoryUpdate::FirstMove(board) => {
-                    self.first_move = board;
-                }
-            }
-        }
-    }
 }
 
 impl<'a, T : BitInt> Board<'a, T> {
@@ -187,6 +163,7 @@ impl<'a, T : BitInt> Board<'a, T> {
                 BitBoard::edges(game.bounds, 1),
                 BitBoard::edges(game.bounds, 2)
             ],
+            history: vec![],
             lookup: vec![ vec![]; 8 ]
         }
     }
@@ -261,9 +238,8 @@ impl<'a, T : BitInt> Board<'a, T> {
     pub fn list_legal_actions(&mut self) -> Vec<Action> {
         let mut actions = vec![];
         for action in self.list_actions() {
-            let history = self.play(action);
-            let is_legal = self.game.processor.is_legal(self);
-            self.state.restore(history);
+            let mut board = self.play(action);
+            let is_legal = board.game.processor.is_legal(&mut board);
             
             if is_legal {
                 actions.push(action);
@@ -300,24 +276,23 @@ impl<'a, T : BitInt> Board<'a, T> {
         return actions.iter().find(|el| self.display_action(**el).contains(&action.to_string())).map(|el| *el).expect("Could not find action"); 
     }
 
-    pub fn play_action(&mut self, action: &str) -> HistoryState<T> {
-        let act = self.find_action(action);
-        self.play(act)
-    }
-    
-    pub fn play_null(&mut self) -> HistoryState<T> {
-        self.state.moving_team = self.state.moving_team.next();
-        self.state.history.push(ActionRecord::Null());
+    pub fn play_null(&mut self) -> Board<T> {
+        let mut board = self.clone();
 
-        HistoryState(vec![])
+        board.state.moving_team = self.state.moving_team.next();
+        board.history.push(ActionRecord::Null());
+        board
     }
 
-    pub fn play(&mut self, action: Action) -> HistoryState<T> {
-        let piece_index = self.state.mailbox[action.from as usize] - 1;
-        let state = self.game.pieces[piece_index as usize].processor.make_move(self, action);
-        self.state.moving_team = self.state.moving_team.next();
+    #[inline(never)]
+    pub fn play(&mut self, action: Action) -> Board<T> {
+        let mut board = self.clone();
 
-        self.state.history.push(ActionRecord::Action(action));
-        state
+        let piece_index = board.state.mailbox[action.from as usize] - 1;
+        board.game.pieces[piece_index as usize].processor.make_move(&mut board, action);
+        board.state.moving_team = board.state.moving_team.next();
+
+        board.history.push(ActionRecord::Action(action));
+        board
     }
 }

@@ -11,18 +11,15 @@ impl<'a, T : BitInt> Board<'a, T> {
     
         let mut nodes = 0;
         for action in actions {
-            let history = self.play(action);
-            let is_legal = self.game.processor.is_legal(self);
+            let mut board = self.play(action);
+            let is_legal = board.game.processor.is_legal(&mut board);
     
             if !is_legal {
-                self.state.restore(history);
                 continue;
             }
     
-            let sub_nodes = self.perft(depth - 1);
+            let sub_nodes = board.perft(depth - 1);
             nodes += sub_nodes;
-    
-            self.state.restore(history);
         }
         nodes
     }

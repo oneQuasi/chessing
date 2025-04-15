@@ -65,7 +65,7 @@ pub trait PieceProcessor<T : BitInt> {
     fn process(&self, board: &mut Board<T>, piece_index: usize) {}
     
     fn list_actions(&self, board: &mut Board<T>, piece_index: usize) -> Vec<Action>;
-    fn make_move(&self, board: &mut Board<T>, action: Action) -> HistoryState<T>;
+    fn make_move(&self, board: &mut Board<T>, action: Action);
 
     /// Only useful for chess; allows us to optimize checks
     fn capture_mask(&self, board: &mut Board<T>, piece_index: usize, mask: BitBoard<T>) -> BitBoard<T> {

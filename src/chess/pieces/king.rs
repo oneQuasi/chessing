@@ -1,19 +1,8 @@
-use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action, HistoryState, HistoryUpdate::{self}}, piece::{Piece, PieceProcessor}, Board, BoardState, Team}};
+use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action}, piece::{Piece, PieceProcessor}, Board, BoardState, Team}};
 
-fn make_castling_move<T : BitInt>(state: &mut BoardState<T>, action: Action) -> HistoryState<T> {
-    let mut updates: Vec<HistoryUpdate<T>> = Vec::with_capacity(7);
-    
+fn make_castling_move<T : BitInt>(state: &mut BoardState<T>, action: Action) {
     let piece_index = state.mailbox[action.from as usize] - 1;
     let rook_ind = state.mailbox[action.to as usize] - 1;
-
-    if state.moving_team == Team::White {
-        updates.push(HistoryUpdate::White(state.white));
-    } else {
-        updates.push(HistoryUpdate::Black(state.black));
-    }
-
-    updates.push(HistoryUpdate::Piece(piece_index, state.pieces[piece_index as usize]));
-    updates.push(HistoryUpdate::Piece(rook_ind as u8, state.pieces[rook_ind as usize]));
 
     // This isn't Fischer-Random compatible yet.
 
@@ -22,11 +11,6 @@ fn make_castling_move<T : BitInt>(state: &mut BoardState<T>, action: Action) -> 
     } else {
         (action.from - 2, action.from - 1)
     };
-
-    updates.push(HistoryUpdate::Mailbox(action.from, piece_index + 1));
-    updates.push(HistoryUpdate::Mailbox(action.to, rook_ind as u8 + 1));
-    updates.push(HistoryUpdate::Mailbox(relocated_king, 0));
-    updates.push(HistoryUpdate::Mailbox(relocated_rook, 0));
 
     let king = BitBoard::index(action.from);
     let rook = BitBoard::index(action.to);
@@ -46,8 +30,6 @@ fn make_castling_move<T : BitInt>(state: &mut BoardState<T>, action: Action) -> 
     state.mailbox[action.to as usize] = 0;
     state.mailbox[relocated_king as usize] = piece_index + 1;
     state.mailbox[relocated_rook as usize] = rook_ind as u8 + 1;
-
-    HistoryState(updates)
 }
 
 pub struct KingProcess;
@@ -164,7 +146,7 @@ impl<T : BitInt> PieceProcessor<T> for KingProcess {
         }
     }
 
-    fn make_move(&self, board: &mut Board<T>, action: Action) -> HistoryState<T> {
+    fn make_move(&self, board: &mut Board<T>, action: Action) {
         if action.info == 0 {
             make_chess_move(&mut board.state, action)
         } else {
