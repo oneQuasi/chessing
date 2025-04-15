@@ -2,12 +2,13 @@
 
 use crate::{bitboard::{BitBoard, BitInt}, game::action::index_to_square};
 
-use super::{action::Action, Board};
+use super::{action::Action, Board, Game};
 
-/// `PieceProcessor` handles making piece-specific changes to the board.
-/// For instance, `PieceProcessor` is where the generation of a piece's lookup table happens.
-pub trait PieceProcessor<T : BitInt> {
-    fn process(&self, _board: &mut Board<T>, _piece_index: usize) {}
+/// `PieceRules` handles making piece-specific changes to the board.
+/// For instance, `PieceRules` is where the generation of a piece's lookup table happens.
+pub trait PieceRules<T : BitInt> {
+    fn process(&self, _game: &mut Game<T>, _piece_index: usize) {}
+    fn load(&self, _board: &mut Board<T>, _piece_index: usize) {}
     
     fn list_actions(&self, board: &mut Board<T>, piece_index: usize) -> Vec<Action>;
     fn make_move(&self, board: &mut Board<T>, action: Action);
@@ -29,23 +30,23 @@ pub trait PieceProcessor<T : BitInt> {
 pub struct Piece<T : BitInt> {
     pub symbol: String,
     pub name: String,
-    pub processor: Box<dyn PieceProcessor<T>>
+    pub rules: Box<dyn PieceRules<T>>
 }
 
 impl<T : BitInt> Piece<T> {
-    pub fn new(symbol: &str, name: &str, processor: Box<dyn PieceProcessor<T>>) -> Piece<T> {
+    pub fn new(symbol: &str, name: &str, processor: Box<dyn PieceRules<T>>) -> Piece<T> {
         Piece {
             symbol: symbol.to_string(),
             name: name.to_string(),
-            processor
+            rules: processor
         }
     }
 }
 
-pub struct EmptyPieceProcessor;
+pub struct EmptyPieceRules;
 
-impl<T : BitInt> PieceProcessor<T> for EmptyPieceProcessor {
-    fn process(&self, _: &mut Board<T>, _: usize) {}
+impl<T : BitInt> PieceRules<T> for EmptyPieceRules {
+    fn process(&self, _: &mut Game<T>, _: usize) {}
     fn list_actions(&self, _: &mut Board<T>, _: usize) -> Vec<Action> {
         vec![]
     }

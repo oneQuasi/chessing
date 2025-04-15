@@ -12,7 +12,7 @@ impl<'a, T : BitInt> Board<'a, T> {
         let mut nodes = 0;
         for action in actions {
             let mut board = self.play(action);
-            let is_legal = board.game.processor.is_legal(&mut board);
+            let is_legal = board.game.rules.is_legal(&mut board);
     
             if !is_legal {
                 continue;

@@ -1,5 +1,5 @@
 
-use crate::{bitboard::{BitBoard, BitInt}, game::{action::{make_chess_move, Action}, piece::{Piece, PieceProcessor}, Board}};
+use crate::{bitboard::{BitBoard, BitInt}, game::{action::{make_chess_move, Action}, piece::{Piece, PieceRules}, Board, Game}};
 
 use super::{ray_attacks_backward, ray_attacks_forward, repeat};
 
@@ -9,12 +9,12 @@ const DOWN_RIGHT: usize = 2;
 const DOWN_LEFT: usize = 3;
 const ALL: usize = 4;
 
-pub struct BishopProcess;
+pub struct BishopRules;
 
-impl<T : BitInt> PieceProcessor<T> for BishopProcess {
-    fn process(&self, board: &mut Board<T>, piece_index: usize) {
-        let edges = board.edges[0];
-        board.lookup[piece_index] = vec![ vec![]; 5 ];
+impl<T : BitInt> PieceRules<T> for BishopRules {
+    fn process(&self, game: &mut Game<T>, piece_index: usize) {
+        let edges = game.edges[0];
+        game.lookup[piece_index] = vec![ vec![]; 5 ];
 
         for index in 0..64 {
             let bishop = BitBoard::index(index);
@@ -24,14 +24,14 @@ impl<T : BitInt> PieceProcessor<T> for BishopProcess {
             let down_right_ray = repeat(bishop, |pos| pos.and_not(edges.bottom).and_not(edges.right).down(1).right(1));
             let down_left_ray = repeat(bishop, |pos| pos.and_not(edges.bottom).and_not(edges.left).down(1).left(1));
 
-            board.lookup[piece_index][UP_RIGHT].push(up_right_ray);
-            board.lookup[piece_index][UP_LEFT].push(up_left_ray);
-            board.lookup[piece_index][DOWN_RIGHT].push(down_right_ray);
-            board.lookup[piece_index][DOWN_LEFT].push(down_left_ray);
+            game.lookup[piece_index][UP_RIGHT].push(up_right_ray);
+            game.lookup[piece_index][UP_LEFT].push(up_left_ray);
+            game.lookup[piece_index][DOWN_RIGHT].push(down_right_ray);
+            game.lookup[piece_index][DOWN_LEFT].push(down_left_ray);
 
             let all = up_right_ray.or(up_left_ray).or(down_right_ray).or(down_left_ray);
 
-            board.lookup[piece_index][ALL].push(all);
+            game.lookup[piece_index][ALL].push(all);
         }
     }
 
@@ -42,7 +42,7 @@ impl<T : BitInt> PieceProcessor<T> for BishopProcess {
         for bishop in board.state.pieces[piece_index].and(moving_team).iter() {
             let pos = bishop as usize;
 
-            if board.lookup[piece_index][ALL][pos].and(mask).is_empty() {
+            if board.game.lookup[piece_index][ALL][pos].and(mask).is_empty() {
                 continue;
             }
             
@@ -90,5 +90,5 @@ impl<T : BitInt> PieceProcessor<T> for BishopProcess {
 }
 
 pub fn create_bishop<T: BitInt>() -> Piece<T> {
-    Piece::new("b", "bishop", Box::new(BishopProcess))
+    Piece::new("b", "bishop", Box::new(BishopRules))
 }

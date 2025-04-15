@@ -2,7 +2,7 @@
 
 use pieces::{king::create_king, knight::create_knight, pawn::{self, create_pawn}, sliders::{bishop::create_bishop, queen::create_queen, rook::create_rook}};
 
-use crate::{bitboard::{BitBoard, BitInt, Bounds}, game::{action::{index_to_square, square_to_index, Action, ActionRecord}, zobrist::ZobristTable, Board, Game, GameProcessor, GameState, GameTemplate, Team}};
+use crate::{bitboard::{BitBoard, BitInt, Bounds}, game::{action::{index_to_square, square_to_index, Action, ActionRecord}, zobrist::ZobristTable, Board, Game, GameRules, GameState, GameTemplate, Team}};
 
 pub mod pieces;
 pub mod suite;
@@ -70,7 +70,7 @@ fn extract_castling_rights<T : BitInt>(board: &Board<T>, rook_ind: usize) -> Cas
 
 pub struct ChessProcessor;
 
-impl<T : BitInt> GameProcessor<T> for ChessProcessor {
+impl<T : BitInt> GameRules<T> for ChessProcessor {
     fn is_legal(&self, board: &mut Board<T>) -> bool {
         let king_ind = board.required_pieces[0];
         let king = board.state.pieces[king_ind].and(board.state.opposite_team());
@@ -339,19 +339,36 @@ pub struct Chess;
 
 impl GameTemplate for Chess {
     fn create<T : BitInt>() -> Game<T> {
-        Game {
-            processor: Box::new(ChessProcessor),
-            pieces: vec![
-                create_pawn(),
-                create_knight(),
-                create_bishop(),
-                create_rook(),
-                create_queen(),
-                create_king()
+        let bounds = Bounds::new(8, 8);
+        let mut game = Game {
+            rules: Box::new(ChessProcessor),
+            pieces: vec![],
+            bounds,
+            default_pos: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string(),
+            lookup: vec![ vec![]; 6 ],
+            edges: vec![
+                BitBoard::edges(bounds, 1),
+                BitBoard::edges(bounds, 2)
             ],
-            bounds: Bounds::new(8, 8),
-            default_pos: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string()
+        };
+
+        let pieces = vec![
+            create_pawn(),
+            create_knight(),
+            create_bishop(),
+            create_rook(),
+            create_queen(),
+            create_king()
+        ];
+
+        let mut index = 0;
+        for piece in pieces {
+            piece.rules.process(&mut game, index);
+            game.pieces.push(piece);
+            index += 1;
         }
+
+        game
     }
 }
 
@@ -368,14 +385,14 @@ mod tests {
         let chess = Chess::create::<u64>();
         let mut board = chess.default();
 
-        let table = chess.processor.gen_zobrist(&mut board, 64);
+        let table = chess.rules.gen_zobrist(&mut board, 64);
         let mut hashes = HashMap::new();
 
         let mut collisions = 0;
 
         for position in TEST_POSITIONS.split("\n") {
             board = chess.load(&position);
-            let hash = chess.processor.hash(&mut board, &table);
+            let hash = chess.rules.hash(&mut board, &table);
 
             if hashes.contains_key(&hash) {
                 println!("COLLISION! {}", hash);
@@ -400,7 +417,7 @@ mod tests {
 
         for position in TEST_POSITIONS.split("\n") {
             let mut board = chess.load(&position);
-            let out = board.game.processor.save(&mut board);
+            let out = board.game.rules.save(&mut board);
 
             if positions.contains(&out) {
                 collisions += 1;

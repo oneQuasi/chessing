@@ -1,9 +1,9 @@
-use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action, ActionRecord}, piece::{Piece, PieceProcessor}, Board, BoardState, Team}};
+use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action, ActionRecord}, piece::{Piece, PieceRules}, Board, BoardState, Team}};
 
 #[inline(always)]
 fn list_white_pawn_captures<T : BitInt>(board: &mut Board<T>, piece_index: usize) -> BitBoard<T> {
     let pawns = board.state.pieces[piece_index];
-    let edges = board.edges[0];
+    let edges = board.game.edges[0];
 
     let up_once = pawns.and(board.state.white).up(1);
     let left_captures = up_once.and_not(edges.left).left(1);
@@ -15,7 +15,7 @@ fn list_white_pawn_captures<T : BitInt>(board: &mut Board<T>, piece_index: usize
 #[inline(always)]
 fn list_black_pawn_captures<T: BitInt>(board: &mut Board<T>, piece_index: usize) -> BitBoard<T> {
     let pawns = board.state.pieces[piece_index];
-    let edges = board.edges[0];
+    let edges = board.game.edges[0];
 
     let down_once = pawns.and(board.state.black).down(1);
     let left_captures = down_once.and_not(edges.left).left(1);
@@ -50,7 +50,7 @@ fn add_black_action<T: BitInt>(board: &mut Board<T>, actions: &mut Vec<Action>, 
 
 #[inline(always)]
 fn list_white_pawn_actions<T: BitInt>(board: &mut Board<T>, piece_index: usize) -> Vec<Action> {
-    let edges = board.edges[0];
+    let edges = board.game.edges[0];
 
     let white = board.state.white;
     let black = board.state.black;
@@ -118,7 +118,7 @@ fn list_white_pawn_actions<T: BitInt>(board: &mut Board<T>, piece_index: usize) 
 
 #[inline(always)]
 fn list_black_pawn_actions<T: BitInt>(board: &mut Board<T>, piece_index: usize) -> Vec<Action> {
-    let edges = board.edges[0];
+    let edges = board.game.edges[0];
 
     let white = board.state.white;
     let black = board.state.black;
@@ -281,11 +281,11 @@ fn make_promotion_move<T: BitInt>(state: &mut BoardState<T>, action: Action) {
 }
 
 
-pub struct PawnProcess;
+pub struct PawnRules;
 
-impl<T : BitInt> PieceProcessor<T> for PawnProcess {
-    fn process(&self, board: &mut Board<T>, piece_index: usize) {
-        let edges = board.edges[0];
+impl<T : BitInt> PieceRules<T> for PawnRules {
+    fn load(&self, board: &mut Board<T>, piece_index: usize) {
+        let edges = board.game.edges[0];
 
         let pawns = board.state.pieces[piece_index];
 
@@ -332,5 +332,5 @@ impl<T : BitInt> PieceProcessor<T> for PawnProcess {
 }
 
 pub fn create_pawn<T : BitInt>() -> Piece<T> {
-    Piece::new("p", "pawn", Box::new(PawnProcess))
+    Piece::new("p", "pawn", Box::new(PawnRules))
 }

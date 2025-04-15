@@ -1,4 +1,4 @@
-use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action}, piece::{Piece, PieceProcessor}, Board, BoardState, Team}};
+use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action}, piece::{Piece, PieceRules}, Board, BoardState, Game, Team}};
 
 fn make_castling_move<T : BitInt>(state: &mut BoardState<T>, action: Action) {
     let piece_index = state.mailbox[action.from as usize] - 1;
@@ -32,12 +32,12 @@ fn make_castling_move<T : BitInt>(state: &mut BoardState<T>, action: Action) {
     state.mailbox[relocated_rook as usize] = rook_ind as u8 + 1;
 }
 
-pub struct KingProcess;
+pub struct KingRules;
 
-impl<T : BitInt> PieceProcessor<T> for KingProcess {
-    fn process(&self, board: &mut Board<T>, piece_index: usize) {
-        let edges = board.edges[0];
-        board.lookup[piece_index] = vec![ vec![ ] ];
+impl<T : BitInt> PieceRules<T> for KingRules {
+    fn process(&self, game: &mut Game<T>, piece_index: usize) {
+        let edges = game.edges[0];
+        game.lookup[piece_index] = vec![ vec![ ] ];
 
         for index in 0..64 {
             let king = BitBoard::index(index);
@@ -51,7 +51,7 @@ impl<T : BitInt> PieceProcessor<T> for KingProcess {
             let left = vertical.and_not(edges.left).left(1);
         
             let moves = vertical.or(right).or(left).and_not(king);
-            board.lookup[piece_index][0].push(moves);
+            game.lookup[piece_index][0].push(moves);
         }
     }
 
@@ -59,7 +59,7 @@ impl<T : BitInt> PieceProcessor<T> for KingProcess {
         let mut mask = BitBoard::empty();
         let moving_team = board.state.team_to_move();
         for king in board.state.pieces[piece_index].and(moving_team).iter() {
-            mask = mask.or(board.lookup[piece_index][0][king as usize]);
+            mask = mask.or(board.game.lookup[piece_index][0][king as usize]);
         }
         mask
     }
@@ -71,7 +71,7 @@ impl<T : BitInt> PieceProcessor<T> for KingProcess {
 
         for king in board.state.pieces[piece_index].and(moving_team).iter() {
             let pos = king as u8;
-            let moves = board.lookup[piece_index][0][king as usize].and_not(moving_team);
+            let moves = board.game.lookup[piece_index][0][king as usize].and_not(moving_team);
             for movement in moves.iter() {
                 actions.push(Action::from(pos, movement as u8, piece))
             }
@@ -156,5 +156,5 @@ impl<T : BitInt> PieceProcessor<T> for KingProcess {
 }
 
 pub fn create_king<T : BitInt>() -> Piece<T> {
-    Piece::new("k", "king", Box::new(KingProcess))
+    Piece::new("k", "king", Box::new(KingRules))
 }

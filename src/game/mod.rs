@@ -25,10 +25,12 @@ pub type AttackLookup<T > = Vec<AttackDirections<T>>;
 pub type PieceLookup<T > = Vec<AttackLookup<T>>;
 
 pub struct Game<T : BitInt> {
-    pub processor: Box<dyn GameProcessor<T>>,
+    pub rules: Box<dyn GameRules<T>>,
     pub pieces: Vec<Piece<T>>,
+    pub edges: Vec<Edges<T>>,
     pub bounds: Bounds,
-    pub default_pos: String
+    pub default_pos: String,
+    pub lookup: PieceLookup<T>
 }
 
 impl<T : BitInt> Game<T> {
@@ -58,8 +60,8 @@ pub enum GameState {
     Ongoing
 }
 
-/// `GameProcessor` handles managing game specific processing.
-pub trait GameProcessor<T : BitInt> {
+/// `GameRules` handles managing game specific processing.
+pub trait GameRules<T : BitInt> {
     fn load(&self, board: &mut Board<T>, pos: &str);
     fn save(&self, board: &mut Board<T>) -> String;
 
@@ -98,8 +100,6 @@ pub struct Board<'a, T : BitInt> {
     pub piece_map: HashMap<String, usize>,
     /// A cache of important piece indexes guaranteed by the game processor.
     pub required_pieces: Vec<usize>,
-    pub edges: Vec<Edges<T>>,
-    pub lookup: PieceLookup<T>,
     pub history: Vec<ActionRecord>
 }
 
@@ -159,12 +159,7 @@ impl<'a, T : BitInt> Board<'a, T> {
             state: BoardState::new(),
             piece_map: HashMap::default(),
             required_pieces: vec![],
-            edges: vec![
-                BitBoard::edges(game.bounds, 1),
-                BitBoard::edges(game.bounds, 2)
-            ],
-            history: vec![],
-            lookup: vec![ vec![]; 8 ]
+            history: vec![]
         }
     }
 
@@ -184,10 +179,10 @@ impl<'a, T : BitInt> Board<'a, T> {
             self.piece_map.insert(piece.name.clone(), index);
         }
 
-        self.game.processor.load(self, pos);
+        self.game.rules.load(self, pos);
 
         for index in 0..self.game.pieces.len() {
-            self.game.pieces[index].processor.process(self, index);
+            self.game.pieces[index].rules.load(self, index);
         }
     }
 
@@ -229,7 +224,7 @@ impl<'a, T : BitInt> Board<'a, T> {
     pub fn list_actions(&mut self) -> Vec<Action> {
         let mut actions: Vec<Action> = Vec::with_capacity(40);
         for piece_type in 0..self.game.pieces.len() {
-            let mut piece_actions = self.game.pieces[piece_type].processor.list_actions(self, piece_type);
+            let mut piece_actions = self.game.pieces[piece_type].rules.list_actions(self, piece_type);
             actions.append(&mut piece_actions);
         }
         actions
@@ -239,7 +234,7 @@ impl<'a, T : BitInt> Board<'a, T> {
         let mut actions = vec![];
         for action in self.list_actions() {
             let mut board = self.play(action);
-            let is_legal = board.game.processor.is_legal(&mut board);
+            let is_legal = board.game.rules.is_legal(&mut board);
             
             if is_legal {
                 actions.push(action);
@@ -251,24 +246,24 @@ impl<'a, T : BitInt> Board<'a, T> {
     pub fn list_captures(&mut self, mask: BitBoard<T>) -> BitBoard<T> {
         let mut captures = BitBoard::empty();
         for piece_type in 0..self.game.pieces.len() {
-            let piece_mask = self.game.pieces[piece_type].processor.capture_mask(self, piece_type, mask);
+            let piece_mask = self.game.pieces[piece_type].rules.capture_mask(self, piece_type, mask);
             captures = piece_mask.or(captures);
         }
         captures
     }
 
     pub fn game_state(&mut self, actions: &[Action]) -> GameState {
-        self.game.processor.game_state(self, actions)
+        self.game.rules.game_state(self, actions)
     }
 
     pub fn display_action(&mut self, action: Action) -> Vec<String> {
         let piece_index = self.state.mailbox[action.from as usize] - 1;
-        self.game.pieces[piece_index as usize].processor.display_action(self, action)
+        self.game.pieces[piece_index as usize].rules.display_action(self, action)
     }
 
     pub fn display_uci_action(&mut self, action: Action) -> String {
         let piece_index = self.state.mailbox[action.from as usize] - 1;
-        self.game.pieces[piece_index as usize].processor.display_uci_action(self, action)
+        self.game.pieces[piece_index as usize].rules.display_uci_action(self, action)
     }
 
     pub fn find_action(&mut self, action: &str) -> Action {
@@ -289,7 +284,7 @@ impl<'a, T : BitInt> Board<'a, T> {
         let mut board = self.clone();
 
         let piece_index = board.state.mailbox[action.from as usize] - 1;
-        board.game.pieces[piece_index as usize].processor.make_move(&mut board, action);
+        board.game.pieces[piece_index as usize].rules.make_move(&mut board, action);
         board.state.moving_team = board.state.moving_team.next();
 
         board.history.push(ActionRecord::Action(action));
