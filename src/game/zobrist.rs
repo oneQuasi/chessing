@@ -2,20 +2,6 @@ use crate::bitboard::BitInt;
 
 use super::{Board, Team};
 
-#[inline(always)]
-fn get_index<T: BitInt, const N: usize>(board: &Board<T, N>, team: Team, piece: usize, square: usize) -> usize {
-    let pieces = board.game.pieces.len();
-    let squares = (board.game.bounds.cols * board.game.bounds.rows) as usize;
-    
-    let team_offset = match team {
-        Team::White => 0,
-        Team::Black => 1,
-    };
-
-    // Index formula: (team * pieces + piece) * squares + square
-    (team_offset * pieces + piece) * squares + square
-}
-
 pub struct ZobristTable {
     pub table: Vec<u64>
 }

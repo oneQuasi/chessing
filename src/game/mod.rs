@@ -141,7 +141,7 @@ impl<T : BitInt, const N: usize> BoardState<T, N> {
 
     pub fn piece_at(&self, square: u8) -> Option<usize> {
         let at = BitBoard::index(square);
-        for piece in 0..self.pieces.len() {
+        for piece in 0..N {
             if self.pieces[piece].and(at).is_set() {
                 return Some(piece);
             }
@@ -163,7 +163,7 @@ impl<'a, T : BitInt, const N: usize> Board<'a, T, N> {
     pub fn load(&mut self, pos: &str) {
         self.game.rules.load(self, pos);
 
-        for index in 0..self.game.pieces.len() {
+        for index in 0..N {
             self.game.pieces[index].rules.load(self, index);
         }
     }
@@ -204,7 +204,7 @@ impl<'a, T : BitInt, const N: usize> Board<'a, T, N> {
 
     pub fn list_actions(&mut self) -> Vec<Action> {
         let mut actions: Vec<Action> = Vec::with_capacity(40);
-        for piece_type in 0..self.game.pieces.len() {
+        for piece_type in 0..N {
             let mut piece_actions = self.game.pieces[piece_type].rules.list_actions(self, piece_type);
             actions.append(&mut piece_actions);
         }
@@ -227,7 +227,7 @@ impl<'a, T : BitInt, const N: usize> Board<'a, T, N> {
 
     pub fn list_captures(&mut self, mask: BitBoard<T>) -> BitBoard<T> {
         let mut captures = BitBoard::empty();
-        for piece_type in 0..self.game.pieces.len() {
+        for piece_type in 0..N {
             let piece_mask = self.game.pieces[piece_type].rules.capture_mask(self, piece_type, mask);
             captures = piece_mask.or(captures);
         }
