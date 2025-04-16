@@ -256,6 +256,11 @@ impl<'a, T : BitInt, const N: usize> Board<'a, T, N> {
         let actions = self.list_actions();
         return actions.iter().find(|el| self.display_action(**el).contains(&action.to_string())).map(|el| *el).expect("Could not find action"); 
     }
+    
+    pub fn play_action(&mut self, action: &str) -> BoardState<T, N> {
+        let action = self.find_action(action);
+        self.play(action)
+    }
 
     pub fn play_null(&mut self) -> Board<T, N> {
         let mut board = self.clone();
