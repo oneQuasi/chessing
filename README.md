@@ -22,7 +22,7 @@ Games to be implemented:
 - [Shogi](https://en.wikipedia.org/wiki/Shogi)
 - [Ataxx](https://en.wikipedia.org/wiki/Ataxx)
 
-Additionally, other chess-compatible games can be implemented within this framework by implementing `GameProcessor` and `PieceProcessor`.
+Additionally, other chess-compatible games can be implemented within this framework by implementing `GameRules` and `PieceRules`.
 
 ## Quickstart
 
@@ -58,23 +58,23 @@ for action in board.list_actions() {
 
 Implementing a Game requires processing distinct logic for pieces and games.
 
-### PieceProcessor
+### PieceRules
 
 ```rs
-pub trait PieceProcessor<T : BitInt> {
-    fn process(&self, board: &mut Board<T>, piece_index: usize) {}
+pub trait PieceRules<T: BitInt, const N: usize> {
+    fn process(&self, board: &mut Board<T, N>, piece_index: usize) {}
     
-    fn list_actions(&self, board: &mut Board<T>, piece_index: usize) -> Vec<Action>;
-    fn make_move(&self, board: &mut Board<T>, action: Action) -> HistoryState<T>;
+    fn list_actions(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action>;
+    fn make_move(&self, board: &mut Board<T, N>, action: Action);
 
     /// Only useful for chess; allows us to optimize checks
-    fn capture_mask(&self, board: &mut Board<T>, piece_index: usize, mask: BitBoard<T>) -> BitBoard<T> {
+    fn capture_mask(&self, board: &mut Board<T, N>, piece_index: usize, mask: BitBoard<T>) -> BitBoard<T> {
         BitBoard::empty()
     }
 }
 ```
 
-`PieceProcessor` is how you can define pieces and piece behaviors.
+`PieceRules` is how you can define pieces and piece behaviors.
 
 - `process` is called after a board is setup, and provides a chance to cache piece moves or otherwise process the board.
 - `list_actions` lists actions that can be made with the piece.
@@ -87,18 +87,18 @@ Some pieces require other piece types to generate specific moves. For instance, 
 let rook_ind = board.find_piece("rook");
 ```
 
-### GameProcessor
+### GameRules
 
 ```rs
-pub trait GameProcessor<T : BitInt> {
+pub trait GameRules<T: BitInt, const N: usize> {
     fn is_legal(&self, board: &mut Board<T>) -> bool;
-    fn load(&self, board: &mut Board<T>, pos: &str);
+    fn load(&self, board: &mut Board<T, N>, pos: &str);
 
-    fn game_state(&self, board: &mut Board<T>, legal_actions: &[Action]) -> GameState;
+    fn game_state(&self, board: &mut Board<T, N>, legal_actions: &[Action]) -> GameState;
 }
 ```
 
-`GameProcessor` is how you define full game behaviors.
+`GameRules` is how you define full game behaviors.
 
 - `is_legal` checks if a board position after a move is made is legal. For instance in Chess, a position is illegal if after a side makes a move, that team's king is under attack.
 - `load` allows for constructing board positions from a string, say a FEN in chess.

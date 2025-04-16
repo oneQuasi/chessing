@@ -3,7 +3,7 @@ use crate::bitboard::BitInt;
 use super::{Board, Team};
 
 #[inline(always)]
-fn get_index<T: BitInt>(board: &Board<T>, team: Team, piece: usize, square: usize) -> usize {
+fn get_index<T: BitInt, const N: usize>(board: &Board<T, N>, team: Team, piece: usize, square: usize) -> usize {
     let pieces = board.game.pieces.len();
     let squares = (board.game.bounds.cols * board.game.bounds.rows) as usize;
     
