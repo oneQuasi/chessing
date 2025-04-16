@@ -217,8 +217,9 @@ impl<'a, T : BitInt> Board<'a, T> {
     pub fn list_legal_actions(&mut self) -> Vec<Action> {
         let mut actions = vec![];
         for action in self.list_actions() {
-            let mut board = self.play(action);
-            let is_legal = board.game.rules.is_legal(&mut board);
+            let state = self.play(action);
+            let is_legal = self.game.rules.is_legal(self);
+            self.restore(state);
             
             if is_legal {
                 actions.push(action);
@@ -263,15 +264,20 @@ impl<'a, T : BitInt> Board<'a, T> {
         board
     }
 
-    #[inline(never)]
-    pub fn play(&mut self, action: Action) -> Board<T> {
-        let mut board = self.clone();
+    pub fn play(&mut self, action: Action) -> BoardState<T> {
+        let state = self.state.clone();
 
-        let piece_index = board.state.mailbox[action.from as usize] - 1;
-        board.game.pieces[piece_index as usize].rules.make_move(&mut board, action);
-        board.state.moving_team = board.state.moving_team.next();
+        let piece_index = self.state.mailbox[action.from as usize] - 1;
+        self.game.pieces[piece_index as usize].rules.make_move(self, action);
+        self.state.moving_team = state.moving_team.next();
 
-        board.history.push(ActionRecord::Action(action));
-        board
+        self.history.push(ActionRecord::Action(action));
+        state
+    }
+
+    pub fn restore(&mut self, state: BoardState<T>) {
+        self.state = state;
+        self.history.pop();
+
     }
 }
