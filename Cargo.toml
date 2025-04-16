@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+arrayvec = "0.7.6"
 fancy-regex = "0.14.0"
 fastrand = "2.3.0"
 heapless = "0.8.0"

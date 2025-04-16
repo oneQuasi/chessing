@@ -60,7 +60,7 @@ impl Action {
 }
 
 #[inline(always)]
-pub fn make_chess_move<T : BitInt>(state: &mut BoardState<T>, action: Action) {
+pub fn make_chess_move<T : BitInt, const N: usize>(state: &mut BoardState<T, N>, action: Action) {
     let piece_index = action.piece as usize;
     let victim_index = state.piece_at(action.to);
     

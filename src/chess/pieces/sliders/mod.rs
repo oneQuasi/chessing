@@ -6,7 +6,7 @@ pub mod rook;
 pub mod queen;
 
 #[inline(always)]
-pub fn ray_attacks_forward<T : BitInt>(board: &mut Board<T>, pos: usize, piece_index: usize, dir: usize) -> BitBoard<T> {
+pub fn ray_attacks_forward<T: BitInt, const N: usize>(board: &mut Board<T, N>, pos: usize, piece_index: usize, dir: usize) -> BitBoard<T> {
     let ray = board.game.lookup[piece_index][dir][pos];
 
     let blocker = ray.and(board.state.black.or(board.state.white));
@@ -19,7 +19,7 @@ pub fn ray_attacks_forward<T : BitInt>(board: &mut Board<T>, pos: usize, piece_i
 }
 
 #[inline(always)]
-pub fn ray_attacks_backward<T : BitInt>(board: &mut Board<T>, pos: usize, piece_index: usize, dir: usize) -> BitBoard<T> {
+pub fn ray_attacks_backward<T: BitInt, const N: usize>(board: &mut Board<T, N>, pos: usize, piece_index: usize, dir: usize) -> BitBoard<T> {
     let ray = board.game.lookup[piece_index][dir][pos];
 
     let blocker = ray.and(board.state.black.or(board.state.white));
@@ -31,7 +31,7 @@ pub fn ray_attacks_backward<T : BitInt>(board: &mut Board<T>, pos: usize, piece_
     }
 }
 
-pub fn repeat<T : BitInt>(mut pos: BitBoard<T>, apply: impl Fn(BitBoard<T>) -> BitBoard<T>) -> BitBoard<T> {
+pub fn repeat<T: BitInt>(mut pos: BitBoard<T>, apply: impl Fn(BitBoard<T>) -> BitBoard<T>) -> BitBoard<T> {
     let mut out = BitBoard::empty();
     loop {
         let progress = apply(pos);

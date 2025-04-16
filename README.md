@@ -61,14 +61,14 @@ Implementing a Game requires processing distinct logic for pieces and games.
 ### PieceRules
 
 ```rs
-pub trait PieceRules<T : BitInt> {
-    fn process(&self, board: &mut Board<T>, piece_index: usize) {}
+pub trait PieceRules<T: BitInt, const N: usize> {
+    fn process(&self, board: &mut Board<T, N>, piece_index: usize) {}
     
-    fn list_actions(&self, board: &mut Board<T>, piece_index: usize) -> Vec<Action>;
-    fn make_move(&self, board: &mut Board<T>, action: Action);
+    fn list_actions(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action>;
+    fn make_move(&self, board: &mut Board<T, N>, action: Action);
 
     /// Only useful for chess; allows us to optimize checks
-    fn capture_mask(&self, board: &mut Board<T>, piece_index: usize, mask: BitBoard<T>) -> BitBoard<T> {
+    fn capture_mask(&self, board: &mut Board<T, N>, piece_index: usize, mask: BitBoard<T>) -> BitBoard<T> {
         BitBoard::empty()
     }
 }
@@ -90,11 +90,11 @@ let rook_ind = board.find_piece("rook");
 ### GameRules
 
 ```rs
-pub trait GameRules<T : BitInt> {
+pub trait GameRules<T: BitInt, const N: usize> {
     fn is_legal(&self, board: &mut Board<T>) -> bool;
-    fn load(&self, board: &mut Board<T>, pos: &str);
+    fn load(&self, board: &mut Board<T, N>, pos: &str);
 
-    fn game_state(&self, board: &mut Board<T>, legal_actions: &[Action]) -> GameState;
+    fn game_state(&self, board: &mut Board<T, N>, legal_actions: &[Action]) -> GameState;
 }
 ```
 

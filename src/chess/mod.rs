@@ -48,7 +48,7 @@ impl CastlingRights {
     }
 }
 
-fn extract_castling_rights<T : BitInt>(board: &Board<T>) -> CastlingRights {
+fn extract_castling_rights<T : BitInt, const N: usize>(board: &Board<T, N>) -> CastlingRights {
     let left_side = BitBoard::edges_left(board.game.bounds, board.game.bounds.cols / 2);
     let right_side = BitBoard::edges_right(board.game.bounds, board.game.bounds.cols / 2);
 
@@ -79,15 +79,15 @@ fn extract_castling_rights<T : BitInt>(board: &Board<T>) -> CastlingRights {
 
 pub struct ChessProcessor;
 
-impl<T : BitInt> GameRules<T> for ChessProcessor {
-    fn is_legal(&self, board: &mut Board<T>) -> bool {
+impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
+    fn is_legal(&self, board: &mut Board<T, N>) -> bool {
         let king = board.state.pieces[KING].and(board.state.opposite_team());
         let mask = board.list_captures(king);
 
         mask.and(king).is_empty()
     }
 
-    fn load(&self, board: &mut Board<T>, pos: &str) {
+    fn load(&self, board: &mut Board<T, N>, pos: &str) {
         let parts: Vec<String> = pos.split(" ").map(|el| el.to_string()).collect();
 
         // Piece Placement
@@ -140,7 +140,7 @@ impl<T : BitInt> GameRules<T> for ChessProcessor {
         }
     }
 
-    fn save(&self, board: &mut Board<T>) -> String {
+    fn save(&self, board: &mut Board<T, N>) -> String {
         // 1. Piece Placement
         let mut piece_rows = Vec::new();
         for row in (0..board.game.bounds.rows).rev() {
@@ -240,7 +240,7 @@ impl<T : BitInt> GameRules<T> for ChessProcessor {
         format!("{} {} {} {} 0 1", piece_placement, active_color, castling, en_passant)
     }
 
-    fn game_state(&self, board: &mut Board<T>, actions: &[Action]) -> crate::game::GameState {
+    fn game_state(&self, board: &mut Board<T, N>, actions: &[Action]) -> crate::game::GameState {
         if actions.len() == 0 {
             let king = board.state.pieces[KING].and(board.state.team_to_move());
             board.state.moving_team = board.state.moving_team.next();
@@ -257,7 +257,7 @@ impl<T : BitInt> GameRules<T> for ChessProcessor {
         }
     }
 
-    fn gen_zobrist(&self, board: &mut Board<T>, seed: u64) -> ZobristTable {
+    fn gen_zobrist(&self, board: &mut Board<T, N>, seed: u64) -> ZobristTable {
         let pieces = board.game.pieces.len();
         let squares = (board.game.bounds.rows * board.game.bounds.cols) as usize;
         let teams = 2;
@@ -273,7 +273,7 @@ impl<T : BitInt> GameRules<T> for ChessProcessor {
         )
     }
 
-    fn hash(&self, board: &mut Board<T>, table: &ZobristTable) -> u64 {
+    fn hash(&self, board: &mut Board<T, N>, table: &ZobristTable) -> u64 {
         let mut attrs = vec![];
 
         let pieces = board.game.pieces.len();
@@ -335,7 +335,7 @@ impl<T : BitInt> GameRules<T> for ChessProcessor {
 pub struct Chess;
 
 impl GameTemplate for Chess {
-    fn create<T : BitInt>() -> Game<T> {
+    fn create<T : BitInt, const N: usize>() -> Game<T, N> {
         let bounds = Bounds::new(8, 8);
         let mut game = Game {
             rules: Box::new(ChessProcessor),
@@ -379,7 +379,7 @@ mod tests {
 
     #[test]
     fn chess_zobrist() {
-        let chess = Chess::create::<u64>();
+        let chess = Chess::create::<u64, 6>();
         let mut board = chess.default();
 
         let table = chess.rules.gen_zobrist(&mut board, 64);
@@ -407,7 +407,7 @@ mod tests {
 
     #[test]
     fn chess_fens() {
-        let chess = Chess::create::<u64>();
+        let chess = Chess::create::<u64, 6>();
 
         let mut positions = HashSet::<String>::new();
         let mut collisions = 0;

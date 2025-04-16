@@ -1,6 +1,6 @@
 use crate::{bitboard::{BitBoard, BitInt}, chess::ROOK, game::{action::{index_to_square, make_chess_move, Action}, piece::{Piece, PieceRules}, Board, BoardState, Game, Team}};
 
-fn make_castling_move<T : BitInt>(state: &mut BoardState<T>, action: Action) {
+fn make_castling_move<T: BitInt, const N: usize>(state: &mut BoardState<T, N>, action: Action) {
     let piece_index = action.piece as usize;
     let rook_ind = state.piece_at(action.to).expect("Rook must exist in castling move");
 
@@ -29,8 +29,8 @@ fn make_castling_move<T : BitInt>(state: &mut BoardState<T>, action: Action) {
 
 pub struct KingRules;
 
-impl<T : BitInt> PieceRules<T> for KingRules {
-    fn process(&self, game: &mut Game<T>, piece_index: usize) {
+impl<T: BitInt, const N: usize> PieceRules<T, N> for KingRules {
+    fn process(&self, game: &mut Game<T, N>, piece_index: usize) {
         let edges = game.edges[0];
         game.lookup[piece_index] = vec![ vec![ ] ];
 
@@ -50,7 +50,7 @@ impl<T : BitInt> PieceRules<T> for KingRules {
         }
     }
 
-    fn capture_mask(&self, board: &mut Board<T>, piece_index: usize, _: BitBoard<T>) -> BitBoard<T> {
+    fn capture_mask(&self, board: &mut Board<T, N>, piece_index: usize, _: BitBoard<T>) -> BitBoard<T> {
         let mut mask = BitBoard::empty();
         let moving_team = board.state.team_to_move();
         for king in board.state.pieces[piece_index].and(moving_team).iter() {
@@ -59,7 +59,7 @@ impl<T : BitInt> PieceRules<T> for KingRules {
         mask
     }
 
-    fn list_actions(&self, board: &mut Board<T>, piece_index: usize) -> Vec<Action> {
+    fn list_actions(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
         let moving_team = board.state.team_to_move();
         let mut actions: Vec<Action> = Vec::with_capacity(8);
         let piece = piece_index as u8;
@@ -106,7 +106,7 @@ impl<T : BitInt> PieceRules<T> for KingRules {
         actions
     }
 
-    fn display_action(&self, board: &mut Board<T>, action: Action) -> Vec<String> {
+    fn display_action(&self, board: &mut Board<T, N>, action: Action) -> Vec<String> {
         let display = format!("{}{}", index_to_square(action.from), index_to_square(action.to));
         if BitBoard::index(action.to).and(board.state.team_to_move()).is_set() {
             let king_dest = if action.to > action.from { action.from + 2 } else { action.from - 2 };
@@ -124,7 +124,7 @@ impl<T : BitInt> PieceRules<T> for KingRules {
         }
     }
 
-    fn display_uci_action(&self, board: &mut Board<T>, action: Action) -> String {
+    fn display_uci_action(&self, board: &mut Board<T, N>, action: Action) -> String {
         if BitBoard::index(action.to).and(board.state.team_to_move()).is_set() {
             let king_dest = if action.to > action.from { action.from + 2 } else { action.from - 2 };
             let alternate_display = format!("{}{}", index_to_square(action.from), index_to_square(king_dest));
@@ -137,7 +137,7 @@ impl<T : BitInt> PieceRules<T> for KingRules {
         }
     }
 
-    fn make_move(&self, board: &mut Board<T>, action: Action) {
+    fn make_move(&self, board: &mut Board<T, N>, action: Action) {
         if action.info == 0 {
             make_chess_move(&mut board.state, action)
         } else {
@@ -146,6 +146,6 @@ impl<T : BitInt> PieceRules<T> for KingRules {
     }
 }
 
-pub fn create_king<T : BitInt>() -> Piece<T> {
+pub fn create_king<T: BitInt, const N: usize>() -> Piece<T, N> {
     Piece::new("k", "king", Box::new(KingRules))
 }

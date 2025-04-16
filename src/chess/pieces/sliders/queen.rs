@@ -17,8 +17,8 @@ const ALL: usize = 10;
 
 pub struct QueenRules;
 
-impl<T: BitInt> PieceRules<T> for QueenRules {
-    fn process(&self, game: &mut Game<T>, piece_index: usize) {
+impl<T: BitInt, const N: usize> PieceRules<T, N> for QueenRules {
+    fn process(&self, game: &mut Game<T, N>, piece_index: usize) {
         let edges = game.edges[0];
         game.lookup[piece_index] = vec![ vec![]; 11 ];
 
@@ -56,7 +56,7 @@ impl<T: BitInt> PieceRules<T> for QueenRules {
         }
     }
 
-    fn capture_mask(&self, board: &mut Board<T>, piece_index: usize, mask: BitBoard<T>) -> BitBoard<T> {
+    fn capture_mask(&self, board: &mut Board<T, N>, piece_index: usize, mask: BitBoard<T>) -> BitBoard<T> {
         let moving_team = board.state.team_to_move();
         let mut captures = BitBoard::empty();
 
@@ -93,7 +93,7 @@ impl<T: BitInt> PieceRules<T> for QueenRules {
         captures
     }
 
-    fn list_actions(&self, board: &mut Board<T>, piece_index: usize) -> Vec<Action> {
+    fn list_actions(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
         let moving_team = board.state.team_to_move();
         let mut actions: Vec<Action> = Vec::with_capacity(4);
 
@@ -121,11 +121,11 @@ impl<T: BitInt> PieceRules<T> for QueenRules {
         actions
     }
 
-    fn make_move(&self, board: &mut Board<T>, action: Action) {
+    fn make_move(&self, board: &mut Board<T, N>, action: Action) {
         make_chess_move(&mut board.state, action)
     }
 }
 
-pub fn create_queen<T: BitInt>() -> Piece<T> {
+pub fn create_queen<T: BitInt, const N: usize>() -> Piece<T, N> {
     Piece::new("q", "queen", Box::new(QueenRules))
 }

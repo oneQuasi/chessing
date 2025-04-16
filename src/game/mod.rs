@@ -1,3 +1,4 @@
+use arrayvec::ArrayVec;
 use rustc_hash::FxHashMap as HashMap;
 
 use action::{ActionRecord, Action};
@@ -24,25 +25,25 @@ pub type AttackLookup<T > = Vec<AttackDirections<T>>;
 /// Indexed by the piece type; find a piece's attack lookups.
 pub type PieceLookup<T > = Vec<AttackLookup<T>>;
 
-pub struct Game<T : BitInt> {
-    pub rules: Box<dyn GameRules<T>>,
-    pub pieces: Vec<Piece<T>>,
+pub struct Game<T : BitInt, const N: usize> {
+    pub rules: Box<dyn GameRules<T, N>>,
+    pub pieces: Vec<Piece<T, N>>,
     pub edges: Vec<Edges<T>>,
     pub bounds: Bounds,
     pub default_pos: String,
     pub lookup: PieceLookup<T>
 }
 
-impl<T : BitInt> Game<T> {
-    pub fn init(&self) -> Board<T> {
+impl<T : BitInt, const N: usize> Game<T, N> {
+    pub fn init(&self) -> Board<T, N> {
         Board::new(self)
     }
 
-    pub fn default(&self) -> Board<T> {
+    pub fn default(&self) -> Board<T, N> {
         self.load(&self.default_pos)
     }
 
-    pub fn load(&self, pos: &str) -> Board<T> {
+    pub fn load(&self, pos: &str) -> Board<T, N> {
         let mut board = self.init();
         board.load(pos);
         board
@@ -50,7 +51,7 @@ impl<T : BitInt> Game<T> {
 }
 
 pub trait GameTemplate {
-    fn create<T : BitInt>() -> Game<T>;
+    fn create<T : BitInt, const N: usize>() -> Game<T, N>;
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -61,14 +62,14 @@ pub enum GameState {
 }
 
 /// `GameRules` handles managing game specific processing.
-pub trait GameRules<T : BitInt> {
-    fn load(&self, board: &mut Board<T>, pos: &str);
-    fn save(&self, board: &mut Board<T>) -> String;
+pub trait GameRules<T : BitInt, const N: usize> {
+    fn load(&self, board: &mut Board<T, N>, pos: &str);
+    fn save(&self, board: &mut Board<T, N>) -> String;
 
-    fn is_legal(&self, board: &mut Board<T>) -> bool;
-    fn game_state(&self, board: &mut Board<T>, legal_actions: &[Action]) -> GameState;
-    fn gen_zobrist(&self, board: &mut Board<T>, seed: u64) -> ZobristTable;
-    fn hash(&self, board: &mut Board<T>, table: &ZobristTable) -> u64;
+    fn is_legal(&self, board: &mut Board<T, N>) -> bool;
+    fn game_state(&self, board: &mut Board<T, N>, legal_actions: &[Action]) -> GameState;
+    fn gen_zobrist(&self, board: &mut Board<T, N>, seed: u64) -> ZobristTable;
+    fn hash(&self, board: &mut Board<T, N>, table: &ZobristTable) -> u64;
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -94,29 +95,29 @@ impl Team {
 }
 
 #[derive(Clone)]
-pub struct Board<'a, T : BitInt> {
-    pub game: &'a Game<T>,
-    pub state: BoardState<T>,
+pub struct Board<'a, T : BitInt, const N: usize> {
+    pub game: &'a Game<T, N>,
+    pub state: BoardState<T, N>,
     pub history: Vec<ActionRecord>
 }
 
 #[derive(Clone)]
-pub struct BoardState<T : BitInt> {
+pub struct BoardState<T : BitInt, const N: usize> {
     pub moving_team: Team,
     pub first_move: BitBoard<T>,
     pub white: BitBoard<T>,
     pub black: BitBoard<T>,
-    pub pieces: Box<[BitBoard<T>]>
+    pub pieces: [ BitBoard<T>; N ]
 }
 
-impl<T : BitInt> BoardState<T> {
+impl<T : BitInt, const N: usize> BoardState<T, N> {
     pub fn new() -> Self {
         Self {
             moving_team: Team::White,
             black: BitBoard::empty(),
             white: BitBoard::empty(),
             first_move: BitBoard::empty(),
-            pieces: vec![BitBoard::empty(); 6].into_boxed_slice()
+            pieces: [ BitBoard::empty(); N ]
         }
     }
 
@@ -150,8 +151,8 @@ impl<T : BitInt> BoardState<T> {
 
 }
 
-impl<'a, T : BitInt> Board<'a, T> {
-    pub fn new(game: &'a Game<T>) -> Self {
+impl<'a, T : BitInt, const N: usize> Board<'a, T, N> {
+    pub fn new(game: &'a Game<T, N>) -> Self {
         Self {
             game,
             state: BoardState::new(),
@@ -256,7 +257,7 @@ impl<'a, T : BitInt> Board<'a, T> {
         return actions.iter().find(|el| self.display_action(**el).contains(&action.to_string())).map(|el| *el).expect("Could not find action"); 
     }
 
-    pub fn play_null(&mut self) -> Board<T> {
+    pub fn play_null(&mut self) -> Board<T, N> {
         let mut board = self.clone();
 
         board.state.moving_team = self.state.moving_team.next();
@@ -264,7 +265,7 @@ impl<'a, T : BitInt> Board<'a, T> {
         board
     }
 
-    pub fn play(&mut self, action: Action) -> BoardState<T> {
+    pub fn play(&mut self, action: Action) -> BoardState<T, N> {
         let state = self.state.clone();
 
         let piece_index = self.piece_at(action.from).expect("Found piece making move");
@@ -275,7 +276,7 @@ impl<'a, T : BitInt> Board<'a, T> {
         state
     }
 
-    pub fn restore(&mut self, state: BoardState<T>) {
+    pub fn restore(&mut self, state: BoardState<T, N>) {
         self.state = state;
         self.history.pop();
 

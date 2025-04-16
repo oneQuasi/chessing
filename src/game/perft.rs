@@ -3,7 +3,7 @@ use crate::bitboard::BitInt;
 
 use super::Board;
 
-impl<'a, T : BitInt> Board<'a, T> {
+impl<'a, T : BitInt, const N: usize> Board<'a, T, N> {
     pub fn perft(&mut self, depth: usize) -> usize {
         if depth == 0 { return 1; }
     

@@ -31,7 +31,7 @@ pub fn parse_suite(positions: &str) -> Vec<Position> {
     out
 }
 
-pub fn test_suite<'a, T : BitInt>(positions: &str, game: &Game<T>) {
+pub fn test_suite<'a, T : BitInt, const N: usize>(positions: &str, game: &Game<T, N>) {
     let positions = parse_suite(positions);
     let mut total_nodes = 0;
 

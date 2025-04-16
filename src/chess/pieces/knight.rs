@@ -3,8 +3,8 @@ use crate::{bitboard::{BitBoard, BitInt}, game::{action::{make_chess_move, Actio
 
 pub struct KnightRules;
 
-impl<T : BitInt> PieceRules<T> for KnightRules {
-    fn process(&self, game: &mut Game<T>, piece_index: usize) {
+impl<T: BitInt, const N: usize> PieceRules<T, N> for KnightRules {
+    fn process(&self, game: &mut Game<T, N>, piece_index: usize) {
         let edges = game.edges[0];
         let deep_edges = game.edges[1];
         game.lookup[piece_index] = vec![ vec![] ];
@@ -28,7 +28,7 @@ impl<T : BitInt> PieceRules<T> for KnightRules {
         }
     }
     
-    fn capture_mask(&self, board: &mut Board<T>, piece_index: usize, _: BitBoard<T>) -> BitBoard<T> {
+    fn capture_mask(&self, board: &mut Board<T, N>, piece_index: usize, _: BitBoard<T>) -> BitBoard<T> {
         let mut mask = BitBoard::empty();
         let moving_team = board.state.team_to_move();
         for knight in board.state.pieces[piece_index].and(moving_team).iter() {
@@ -38,7 +38,7 @@ impl<T : BitInt> PieceRules<T> for KnightRules {
     }
 
 
-    fn list_actions(&self, board: &mut Board<T>, piece_index: usize) -> Vec<Action> {
+    fn list_actions(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
         let moving_team = board.state.team_to_move();
         let mut actions: Vec<Action> = Vec::with_capacity(8);
 
@@ -54,11 +54,11 @@ impl<T : BitInt> PieceRules<T> for KnightRules {
         actions
     }
 
-    fn make_move(&self, board: &mut Board<T>, action: Action) {
+    fn make_move(&self, board: &mut Board<T, N>, action: Action) {
         make_chess_move(&mut board.state, action)
     }
 }
 
-pub fn create_knight<T : BitInt>() -> Piece<T> {
+pub fn create_knight<T: BitInt, const N: usize>() -> Piece<T, N> {
     Piece::new("n", "knight", Box::new(KnightRules))
 }
