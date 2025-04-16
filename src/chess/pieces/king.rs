@@ -1,8 +1,8 @@
 use crate::{bitboard::{BitBoard, BitInt}, chess::ROOK, game::{action::{index_to_square, make_chess_move, Action}, piece::{Piece, PieceRules}, Board, BoardState, Game, Team}};
 
 fn make_castling_move<T : BitInt>(state: &mut BoardState<T>, action: Action) {
-    let piece_index = state.mailbox[action.from as usize] - 1;
-    let rook_ind = state.mailbox[action.to as usize] - 1;
+    let piece_index = action.piece as usize;
+    let rook_ind = state.piece_at(action.to).expect("Rook must exist in castling move");
 
     // This isn't Fischer-Random compatible yet.
 
@@ -25,11 +25,6 @@ fn make_castling_move<T : BitInt>(state: &mut BoardState<T>, action: Action) {
     } else {
         state.black = state.black.xor(king).xor(rook).or(king_relocated).or(rook_relocated);
     }
-
-    state.mailbox[action.from as usize] = 0;
-    state.mailbox[action.to as usize] = 0;
-    state.mailbox[relocated_king as usize] = piece_index + 1;
-    state.mailbox[relocated_rook as usize] = rook_ind as u8 + 1;
 }
 
 pub struct KingRules;

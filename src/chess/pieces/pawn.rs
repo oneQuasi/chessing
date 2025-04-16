@@ -94,20 +94,22 @@ fn list_white_pawn_actions<T: BitInt>(board: &mut Board<T>, piece_index: usize) 
     }
 
     if let Some(ActionRecord::Action(last_move)) = board.history.last() {
-        let last_piece_index = board.state.mailbox[last_move.to as usize] - 1;
-        let was_pawn_move = last_piece_index == piece_index as u8;
+        let last_piece_index = board.state.piece_at(last_move.to);
+        if let Some(last_piece_index) = last_piece_index {
+            let was_pawn_move = last_piece_index == piece_index;
 
-        if was_pawn_move {
-            let was_double_move = last_move.to.abs_diff(last_move.from) == 16;
-            if was_double_move {
-                let capture = last_move.from - 8;
-                let target = BitBoard::<T>::index(capture.into());
-                if possible_left_captures.and(target).is_set() {
-                    add_white_action(board, &mut actions, Action::from(capture - 8 + 1, capture, piece).with_info(1));
-                }
+            if was_pawn_move {
+                let was_double_move = last_move.to.abs_diff(last_move.from) == 16;
+                if was_double_move {
+                    let capture = last_move.from - 8;
+                    let target = BitBoard::<T>::index(capture.into());
+                    if possible_left_captures.and(target).is_set() {
+                        add_white_action(board, &mut actions, Action::from(capture - 8 + 1, capture, piece).with_info(1));
+                    }
 
-                if possible_right_captures.and(target).is_set() {
-                    add_white_action(board, &mut actions, Action::from(capture - 8 - 1, capture, piece).with_info(1));
+                    if possible_right_captures.and(target).is_set() {
+                        add_white_action(board, &mut actions, Action::from(capture - 8 - 1, capture, piece).with_info(1));
+                    }
                 }
             }
         }
@@ -163,20 +165,22 @@ fn list_black_pawn_actions<T: BitInt>(board: &mut Board<T>, piece_index: usize) 
     }
 
     if let Some(ActionRecord::Action(last_move)) = board.history.last() {
-        let last_piece_index = board.state.mailbox[last_move.to as usize] - 1;
-        let was_pawn_move = last_piece_index == piece_index as u8;
+        let last_piece_index = board.state.piece_at(last_move.to);
+        if let Some(last_piece_index) = last_piece_index {
+            let was_pawn_move = last_piece_index == piece_index;
 
-        if was_pawn_move {
-            let was_double_move = last_move.to.abs_diff(last_move.from) == 16;
-            if was_double_move {
-                let capture = last_move.from + 8;
-                let target = BitBoard::<T>::index(capture.into());
-                if possible_left_captures.and(target).is_set() {
-                    add_black_action(board, &mut actions, Action::from(capture + 8 + 1, capture, piece).with_info(1));
-                }
+            if was_pawn_move {
+                let was_double_move = last_move.to.abs_diff(last_move.from) == 16;
+                if was_double_move {
+                    let capture = last_move.from + 8;
+                    let target = BitBoard::<T>::index(capture.into());
+                    if possible_left_captures.and(target).is_set() {
+                        add_black_action(board, &mut actions, Action::from(capture + 8 + 1, capture, piece).with_info(1));
+                    }
 
-                if possible_right_captures.and(target).is_set() {
-                    add_black_action(board, &mut actions, Action::from(capture + 8 - 1, capture, piece).with_info(1));
+                    if possible_right_captures.and(target).is_set() {
+                        add_black_action(board, &mut actions, Action::from(capture + 8 - 1, capture, piece).with_info(1));
+                    }
                 }
             }
         }
@@ -197,7 +201,7 @@ fn make_en_passant_move<T: BitInt>(state: &mut BoardState<T>, action: Action) {
     };
     let taken = BitBoard::index(taken_pos);
 
-    let piece_index = state.mailbox[action.from as usize] - 1;
+    let piece_index = action.piece as usize;
 
     match team {
         Team::White => {
@@ -210,18 +214,14 @@ fn make_en_passant_move<T: BitInt>(state: &mut BoardState<T>, action: Action) {
         }
     }
 
-    state.mailbox[action.from as usize] = 0;
-    state.mailbox[taken_pos as usize] = 0;
-    state.mailbox[action.to as usize] = piece_index + 1;
-
     state.pieces[piece_index as usize] = state.pieces[piece_index as usize].xor(from).xor(taken).or(to);
     state.first_move = state.first_move.xor(from).xor(taken);
 }
 
 fn make_promotion_move<T: BitInt>(state: &mut BoardState<T>, action: Action) {
-    let piece_index = state.mailbox[action.from as usize] - 1;
+    let piece_index = action.piece as usize;
+    let victim_index = state.piece_at(action.to);
     let promoted_piece_type = action.info - 2;
-    let mailbox = state.mailbox[action.to as usize];
 
     let white = state.white;
     let black = state.black;
@@ -232,11 +232,8 @@ fn make_promotion_move<T: BitInt>(state: &mut BoardState<T>, action: Action) {
     let to = BitBoard::index(action.to);
 
     let team = state.moving_team;
-    let is_capture = mailbox > 0;
 
-    if is_capture {
-        let piece_type = mailbox - 1;
-
+    if let Some(piece_type) = victim_index {
         // Remove the captured piece type from its bitboard
         let piece = state.pieces[piece_type as usize];
         let same_piece_type = piece_type == piece_index;
@@ -275,9 +272,6 @@ fn make_promotion_move<T: BitInt>(state: &mut BoardState<T>, action: Action) {
     if first_move != state.first_move {
         state.first_move = first_move;
     }
-
-    state.mailbox[action.from as usize] = 0;
-    state.mailbox[action.to as usize] = promoted_piece_type + 1;
 }
 
 

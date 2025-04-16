@@ -103,18 +103,10 @@ pub struct Board<'a, T : BitInt> {
 #[derive(Clone)]
 pub struct BoardState<T : BitInt> {
     pub moving_team: Team,
-
-    // Pieces which haven't moved are set as `first_move`
-
     pub first_move: BitBoard<T>,
-
-    // Only two player games are supported.
-
     pub white: BitBoard<T>,
     pub black: BitBoard<T>,
-    pub pieces: Box<[BitBoard<T>]>,
-
-    pub mailbox: Box<[u8]>,
+    pub pieces: Box<[BitBoard<T>]>
 }
 
 impl<T : BitInt> BoardState<T> {
@@ -124,8 +116,7 @@ impl<T : BitInt> BoardState<T> {
             black: BitBoard::empty(),
             white: BitBoard::empty(),
             first_move: BitBoard::empty(),
-            pieces: vec![BitBoard::empty(); 6].into_boxed_slice(),
-            mailbox: vec![0; 64].into_boxed_slice()
+            pieces: vec![BitBoard::empty(); 6].into_boxed_slice()
         }
     }
 
@@ -145,6 +136,16 @@ impl<T : BitInt> BoardState<T> {
     #[inline(always)]
     pub fn opposite_team(&self) -> BitBoard<T> {
         self.team(self.moving_team.next())
+    }
+
+    pub fn piece_at(&self, square: u8) -> Option<usize> {
+        let at = BitBoard::index(square);
+        for piece in 0..self.pieces.len() {
+            if self.pieces[piece].and(at).is_set() {
+                return Some(piece);
+            }
+        }
+        None
     }
 
 }
@@ -187,7 +188,6 @@ impl<'a, T : BitInt> Board<'a, T> {
                     self.state.first_move = self.state.first_move.or(piece);
 
                     self.state.pieces[index] = self.state.pieces[index].or(piece);
-                    self.state.mailbox[piece.bitscan_forward() as usize] = index as u8 + 1;
 
                     if is_black {
                         self.state.black = self.state.black.or(piece);
@@ -237,13 +237,17 @@ impl<'a, T : BitInt> Board<'a, T> {
         self.game.rules.game_state(self, actions)
     }
 
+    pub fn piece_at(&self, square: u8) -> Option<usize> {
+        self.state.piece_at(square)
+    }
+
     pub fn display_action(&mut self, action: Action) -> Vec<String> {
-        let piece_index = self.state.mailbox[action.from as usize] - 1;
+        let piece_index = self.piece_at(action.from).expect("Found displayed piece");
         self.game.pieces[piece_index as usize].rules.display_action(self, action)
     }
 
     pub fn display_uci_action(&mut self, action: Action) -> String {
-        let piece_index = self.state.mailbox[action.from as usize] - 1;
+        let piece_index = self.piece_at(action.from).expect("Found displayed piece");
         self.game.pieces[piece_index as usize].rules.display_uci_action(self, action)
     }
 
@@ -263,7 +267,7 @@ impl<'a, T : BitInt> Board<'a, T> {
     pub fn play(&mut self, action: Action) -> BoardState<T> {
         let state = self.state.clone();
 
-        let piece_index = self.state.mailbox[action.from as usize] - 1;
+        let piece_index = self.piece_at(action.from).expect("Found piece making move");
         self.game.pieces[piece_index as usize].rules.make_move(self, action);
         self.state.moving_team = state.moving_team.next();
 

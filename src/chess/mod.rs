@@ -222,8 +222,8 @@ impl<T : BitInt> GameRules<T> for ChessProcessor {
         let mut en_passant = "-".to_string();
     
         if let Some(ActionRecord::Action(last_move)) = board.history.last() {
-            let last_piece_index = board.state.mailbox[last_move.to as usize] - 1;
-            let was_pawn_move = last_piece_index == PAWN as u8;
+            let last_piece_index = board.state.piece_at(last_move.to).expect("Found en passant piece");
+            let was_pawn_move = last_piece_index == PAWN;
     
             if was_pawn_move {
                 let diff = last_move.to.abs_diff(last_move.from);
@@ -309,15 +309,17 @@ impl<T : BitInt> GameRules<T> for ChessProcessor {
         let mut en_passant = false;
 
         if let Some(ActionRecord::Action(last_move)) = board.history.last() {
-            let last_piece_index = board.state.mailbox[last_move.to as usize] - 1;
-            let was_pawn_move = last_piece_index == PAWN as u8;
-    
-            if was_pawn_move {
-                let was_double_move = last_move.to.abs_diff(last_move.from) == 16;
-                if was_double_move {
-                    en_passant = true;
-                    let team_index = board.state.moving_team.index();
-                    attrs.push((last_move.to as usize) + (squares * team_index) + features);
+            let last_piece_index = board.state.piece_at(last_move.to);
+            if let Some(last_piece_index) = last_piece_index {
+                let was_pawn_move = last_piece_index == PAWN;
+        
+                if was_pawn_move {
+                    let was_double_move = last_move.to.abs_diff(last_move.from) == 16;
+                    if was_double_move {
+                        en_passant = true;
+                        let team_index = board.state.moving_team.index();
+                        attrs.push((last_move.to as usize) + (squares * team_index) + features);
+                    }
                 }
             }
         }

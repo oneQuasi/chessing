@@ -61,17 +61,13 @@ impl Action {
 
 #[inline(always)]
 pub fn make_chess_move<T : BitInt>(state: &mut BoardState<T>, action: Action) {
-    let to_idx = action.to as usize;
-    let from_idx = action.from as usize;
-
-    let piece_index = state.mailbox[from_idx] - 1;
-    let mailbox = state.mailbox[to_idx];
+    let piece_index = action.piece as usize;
+    let victim_index = state.piece_at(action.to);
     
     let from = BitBoard::index(action.from);
     let to = BitBoard::index(action.to);
 
     let team = state.moving_team;
-    let is_capture = mailbox > 0;
 
     // Save the moved piece's old state
     let piece = state.pieces[piece_index as usize];
@@ -79,9 +75,7 @@ pub fn make_chess_move<T : BitInt>(state: &mut BoardState<T>, action: Action) {
     let white = state.white;
     let black = state.black;
 
-    if is_capture {
-        let piece_type = mailbox - 1;
-
+    if let Some(piece_type) = victim_index {
         // Remove the captured piece type from its bitboard
         let same_piece_type = piece_type == piece_index;
         if !same_piece_type {
@@ -102,9 +96,6 @@ pub fn make_chess_move<T : BitInt>(state: &mut BoardState<T>, action: Action) {
 
     // Update the moved piece's piece bitboard
     state.pieces[piece_index as usize] = piece.xor(from).or(to);
-
-    state.mailbox[from_idx] = 0;
-    state.mailbox[to_idx] = piece_index + 1;
 
     // Update the moved piece's team bitboard
     match team {
