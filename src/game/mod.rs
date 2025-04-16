@@ -112,9 +112,9 @@ pub struct BoardState<T : BitInt> {
 
     pub white: BitBoard<T>,
     pub black: BitBoard<T>,
-    pub pieces: Vec<BitBoard<T>>,
+    pub pieces: Box<[BitBoard<T>]>,
 
-    pub mailbox: Vec<u8>
+    pub mailbox: Box<[u8]>,
 }
 
 impl<T : BitInt> BoardState<T> {
@@ -124,8 +124,8 @@ impl<T : BitInt> BoardState<T> {
             black: BitBoard::empty(),
             white: BitBoard::empty(),
             first_move: BitBoard::empty(),
-            pieces: vec![BitBoard::empty(); 6],
-            mailbox: vec![]
+            pieces: vec![BitBoard::empty(); 6].into_boxed_slice(),
+            mailbox: vec![0; 64].into_boxed_slice()
         }
     }
 
@@ -159,10 +159,6 @@ impl<'a, T : BitInt> Board<'a, T> {
     }
 
     pub fn load(&mut self, pos: &str) {
-        for _ in 0..(self.game.bounds.rows * self.game.bounds.cols) {
-            self.state.mailbox.push(0);
-        }
-
         self.game.rules.load(self, pos);
 
         for index in 0..self.game.pieces.len() {
