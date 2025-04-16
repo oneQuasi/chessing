@@ -60,7 +60,7 @@ impl<T: BitInt, const N: usize> PieceRules<T, N> for RookRules {
 
     fn list_actions(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
         let moving_team = board.state.team_to_move();
-        let mut actions: Vec<Action> = Vec::with_capacity(4);
+        let mut actions: Vec<Action> = Vec::with_capacity(8);
 
         let piece = piece_index as u8;
         for rook in board.state.pieces[piece_index].and(moving_team).iter() {

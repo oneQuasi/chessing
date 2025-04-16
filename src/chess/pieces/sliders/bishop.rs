@@ -62,7 +62,7 @@ impl<T: BitInt, const N: usize> PieceRules<T, N> for BishopRules {
         let moving_team = board.state.team_to_move();
         let bishops = board.state.pieces[piece_index];
 
-        let mut actions: Vec<Action> = Vec::with_capacity(4);
+        let mut actions: Vec<Action> = Vec::with_capacity(8);
 
         let piece = piece_index as u8;
         for bishop in bishops.and(moving_team).iter() {
