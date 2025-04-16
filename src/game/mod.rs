@@ -262,12 +262,12 @@ impl<'a, T : BitInt, const N: usize> Board<'a, T, N> {
         self.play(action)
     }
 
-    pub fn play_null(&mut self) -> Board<T, N> {
-        let mut board = self.clone();
+    pub fn play_null(&mut self) -> BoardState<T, N> {
+        let state = self.state.clone();
 
-        board.state.moving_team = self.state.moving_team.next();
-        board.history.push(ActionRecord::Null());
-        board
+        self.state.moving_team = self.state.moving_team.next();
+        self.history.push(ActionRecord::Null());
+        state
     }
 
     pub fn play(&mut self, action: Action) -> BoardState<T, N> {
