@@ -1,3 +1,5 @@
+pub mod sizedint;
+
 use num::{PrimInt, Unsigned};
 
 pub trait BitInt:
@@ -12,8 +14,8 @@ pub struct BitBoard<T: BitInt>(pub T);
 
 #[derive(Clone, Copy, Debug)]
 pub struct Bounds {
-    pub rows: u8,
-    pub cols: u8,
+    pub rows: u16,
+    pub cols: u16,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -48,7 +50,7 @@ impl<T: BitInt> Iterator for BitPositions<T> {
 }
 
 impl Bounds {
-    pub fn new(rows: u8, cols: u8) -> Bounds {
+    pub fn new(rows: u16, cols: u16) -> Bounds {
         Bounds { rows, cols }
     }
 }
@@ -117,7 +119,7 @@ impl<T: BitInt> BitBoard<T> {
         }
     }
 
-    pub fn edges_left(bounds: Bounds, depth: u8) -> BitBoard<T> {
+    pub fn edges_left(bounds: Bounds, depth: u16) -> BitBoard<T> {
         let Bounds { rows, cols } = bounds;
         if rows < 3 || cols < 3 || depth == 0 {
             return BitBoard(T::zero());
@@ -133,7 +135,7 @@ impl<T: BitInt> BitBoard<T> {
         BitBoard(mask)
     }
 
-    pub fn edges_right(bounds: Bounds, depth: u8) -> BitBoard<T> {
+    pub fn edges_right(bounds: Bounds, depth: u16) -> BitBoard<T> {
         let Bounds { rows, cols } = bounds;
         if rows < 3 || cols < 3 || depth == 0 {
             return BitBoard(T::zero());
@@ -149,7 +151,7 @@ impl<T: BitInt> BitBoard<T> {
         BitBoard(mask)
     }
 
-    pub fn edges_down(bounds: Bounds, depth: u8) -> BitBoard<T> {
+    pub fn edges_down(bounds: Bounds, depth: u16) -> BitBoard<T> {
         let Bounds { rows, cols } = bounds;
         if rows < 3 || cols < 3 || depth == 0 {
             return BitBoard(T::zero());
@@ -165,7 +167,7 @@ impl<T: BitInt> BitBoard<T> {
         BitBoard(mask)
     }
 
-    pub fn edges_up(bounds: Bounds, depth: u8) -> BitBoard<T> {
+    pub fn edges_up(bounds: Bounds, depth: u16) -> BitBoard<T> {
         let Bounds { rows, cols } = bounds;
         if rows < 3 || cols < 3 || depth == 0 {
             return BitBoard(T::zero());
@@ -181,7 +183,7 @@ impl<T: BitInt> BitBoard<T> {
         BitBoard(mask)
     }
 
-    pub fn edges(bounds: Bounds, depth: u8) -> Edges<T> {
+    pub fn edges(bounds: Bounds, depth: u16) -> Edges<T> {
         let left = Self::edges_left(bounds, depth);
         let right = Self::edges_right(bounds, depth);
         let top = Self::edges_up(bounds, depth);
@@ -201,7 +203,7 @@ impl<T: BitInt> BitBoard<T> {
         BitBoard(T::zero())
     }
 
-    pub fn index(index: u8) -> BitBoard<T> {
+    pub fn index(index: u16) -> BitBoard<T> {
         BitBoard(T::one() << index.into())
     }
 
@@ -233,7 +235,7 @@ impl<T: BitInt> BitBoard<T> {
         BitBoard(mask << start)
     }
 
-    pub fn coords(x: u8, y: u8, bounds: Bounds) -> BitBoard<T> {
+    pub fn coords(x: u16, y: u16, bounds: Bounds) -> BitBoard<T> {
         assert!(x < bounds.cols, "x coordinate out of bounds");
         assert!(y < bounds.rows, "y coordinate out of bounds");
 

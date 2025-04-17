@@ -77,19 +77,19 @@ fn list_white_pawn_actions<T: BitInt, const N: usize>(board: &mut Board<T, N>, p
     let piece = piece_index as u8;
 
     for movement in moves.iter() {
-        let movement = movement as u8;
+        let movement = movement as u16;
         add_white_action(board, &mut actions, Action::from(movement - 8, movement, piece));
     }
     for movement in first_moves.iter() {
-        let movement = movement as u8;
+        let movement = movement as u16;
         add_white_action(board, &mut actions, Action::from(movement - 16, movement, piece));
     }
     for movement in left_captures.iter() {
-        let movement = movement as u8;
+        let movement = movement as u16;
         add_white_action(board, &mut actions, Action::from(movement - 8 + 1, movement, piece));
     }
     for movement in right_captures.iter() {
-        let movement = movement as u8;
+        let movement = movement as u16;
         add_white_action(board, &mut actions, Action::from(movement - 8 - 1, movement, piece));
     }
 
@@ -148,19 +148,19 @@ fn list_black_pawn_actions<T: BitInt, const N: usize>(board: &mut Board<T, N>, p
     let piece = piece_index as u8;
 
     for movement in moves.iter() {
-        let movement = movement as u8;
+        let movement = movement as u16;
         add_black_action(board, &mut actions, Action::from(movement + 8, movement, piece));
     }
     for movement in first_moves.iter() {
-        let movement = movement as u8;
+        let movement = movement as u16;
         add_black_action(board, &mut actions, Action::from(movement + 16, movement, piece));
     }
     for movement in left_captures.iter() {
-        let movement = movement as u8;
+        let movement = movement as u16;
         add_black_action(board, &mut actions, Action::from(movement + 8 + 1, movement, piece));
     }
     for movement in right_captures.iter() {
-        let movement = movement as u8;
+        let movement = movement as u16;
         add_black_action(board, &mut actions, Action::from(movement + 8 - 1, movement, piece));
     }
 

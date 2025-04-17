@@ -67,7 +67,7 @@ impl<T: BitInt, const N: usize> PieceRules<T, N> for BishopRules {
         let piece = piece_index as u8;
         for bishop in bishops.and(moving_team).iter() {
             let pos = bishop as usize;
-            let stored_pos = bishop as u8;
+            let stored_pos = bishop as u16;
             
             let up_right = ray_attacks_forward(board, pos, piece_index, UP_RIGHT);
             let up_left = ray_attacks_forward(board, pos, piece_index, UP_LEFT);
@@ -76,7 +76,7 @@ impl<T: BitInt, const N: usize> PieceRules<T, N> for BishopRules {
 
             let moves = up_right.or(up_left).or(down_right).or(down_left).and_not(moving_team);
             for movement in moves.iter() {
-                actions.push(Action::from(stored_pos, movement as u8, piece))
+                actions.push(Action::from(stored_pos, movement as u16, piece))
             }
         }
 

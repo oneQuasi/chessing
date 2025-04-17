@@ -139,7 +139,7 @@ impl<T : BitInt, const N: usize> BoardState<T, N> {
         self.team(self.moving_team.next())
     }
 
-    pub fn piece_at(&self, square: u8) -> Option<usize> {
+    pub fn piece_at(&self, square: u16) -> Option<usize> {
         let at = BitBoard::index(square);
         for piece in 0..N {
             if self.pieces[piece].and(at).is_set() {
@@ -170,12 +170,12 @@ impl<'a, T : BitInt, const N: usize> Board<'a, T, N> {
 
     pub fn load_pieces(&mut self, pos: &str) {
         for (y, row) in pos.split("/").enumerate() {
-            let y = y as u8;
-            let mut x: u8 = 0;
+            let y = y as u16;
+            let mut x: u16 = 0;
 
             for char in row.chars() {
                 if let Some(skip) = char.to_digit(10) {
-                    x += skip as u8;
+                    x += skip as u16;
                     continue;
                 }
 
@@ -238,7 +238,7 @@ impl<'a, T : BitInt, const N: usize> Board<'a, T, N> {
         self.game.rules.game_state(self, actions)
     }
 
-    pub fn piece_at(&self, square: u8) -> Option<usize> {
+    pub fn piece_at(&self, square: u16) -> Option<usize> {
         self.state.piece_at(square)
     }
 

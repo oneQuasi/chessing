@@ -65,10 +65,10 @@ impl<T: BitInt, const N: usize> PieceRules<T, N> for KingRules {
         let piece = piece_index as u8;
 
         for king in board.state.pieces[piece_index].and(moving_team).iter() {
-            let pos = king as u8;
+            let pos = king as u16;
             let moves = board.game.lookup[piece_index][0][king as usize].and_not(moving_team);
             for movement in moves.iter() {
-                actions.push(Action::from(pos, movement as u8, piece))
+                actions.push(Action::from(pos, movement as u16, piece))
             }
 
             // Castling: Rook is required
@@ -99,7 +99,7 @@ impl<T: BitInt, const N: usize> PieceRules<T, N> for KingRules {
                 }
 
                 // We can castle! This move is represented as king goes to where the rook is.
-                actions.push(Action::from(pos, rook as u8, piece).with_info(1));
+                actions.push(Action::from(pos, rook as u16, piece).with_info(1));
             }
         }
     
