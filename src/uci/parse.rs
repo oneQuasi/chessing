@@ -15,7 +15,9 @@ pub enum GoOption {
     WInc(u64),
     BInc(u64),
     MovesToGo(u64),
-    MoveTime(u64), // Added movetime support
+    MoveTime(u64),
+    Depth(u64),
+    Nodes(u64),
 }
 
 #[derive(Debug)]
@@ -29,6 +31,7 @@ pub enum UciCommand {
     Stop(),
     UciNewGame(),
     IsReady(),
+    Bench(),
     Go {
         options: Vec<GoOption>,
     },
@@ -59,7 +62,7 @@ fn parse_and_push(
 impl Uci {
     pub fn parse(&self, cmd: &str) -> UciCommand {
         let go_regex = Regex::new(
-            r"^go(?: (?:(?:(?:wtime (?P<wtime>\d+))|(?:btime (?P<btime>\d+))|(?:winc (?P<winc>\d+))|(?:binc (?P<binc>\d+))|(?:movestogo (?P<movestogo>\d+))|(?:movetime (?P<movetime>\d+))) ?)*)?$"
+            r"^go(?: (?:(?:(?:wtime (?P<wtime>\d+))|(?:btime (?P<btime>\d+))|(?:winc (?P<winc>\d+))|(?:binc (?P<binc>\d+))|(?:movestogo (?P<movestogo>\d+))|(?:movetime (?P<movetime>\d+))|(?:depth (?P<depth>\d+))|(?:nodes (?P<nodes>\d+))) ?)*)?$"
         ).unwrap();
 
         let startpos_regex =
@@ -78,6 +81,7 @@ impl Uci {
         if cmd == "stop" {
             return UciCommand::Stop();
         }
+        
 
         if cmd == "ucinewgame" {
             return UciCommand::UciNewGame();
@@ -85,6 +89,10 @@ impl Uci {
 
         if cmd == "isready" {
             return UciCommand::IsReady();
+        }
+
+        if cmd == "bench" {
+            return UciCommand::Bench();
         }
 
         if let Ok(Some(caps)) = startpos_regex.captures(cmd) {
@@ -110,7 +118,9 @@ impl Uci {
             parse_and_push(&caps, "winc", GoOption::WInc, &mut options);
             parse_and_push(&caps, "binc", GoOption::BInc, &mut options);
             parse_and_push(&caps, "movestogo", GoOption::MovesToGo, &mut options);
-            parse_and_push(&caps, "movetime", GoOption::MoveTime, &mut options); // <-- Added
+            parse_and_push(&caps, "movetime", GoOption::MoveTime, &mut options);
+            parse_and_push(&caps, "depth", GoOption::Depth, &mut options);
+            parse_and_push(&caps, "nodes", GoOption::Nodes, &mut options);
 
             return UciCommand::Go { options };
         }
