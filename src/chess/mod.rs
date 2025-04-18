@@ -274,7 +274,7 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
     }
 
     fn hash(&self, board: &mut Board<T, N>, table: &ZobristTable) -> u64 {
-        let mut attrs = vec![];
+        let mut attrs = Vec::with_capacity(30);
 
         let pieces = N;
         let squares = (board.game.bounds.rows * board.game.bounds.cols) as usize;

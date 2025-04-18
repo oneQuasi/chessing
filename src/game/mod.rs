@@ -203,26 +203,30 @@ impl<'a, T : BitInt, const N: usize> Board<'a, T, N> {
     }
 
     pub fn list_actions(&mut self) -> Vec<Action> {
-        let mut actions: Vec<Action> = Vec::with_capacity(40);
+        let mut actions = Vec::with_capacity(40); // Pre-allocate as you did
         for piece_type in 0..N {
-            let mut piece_actions = self.game.pieces[piece_type].rules.list_actions(self, piece_type);
-            actions.append(&mut piece_actions);
+            actions.extend(
+                self.game.pieces[piece_type]
+                    .rules
+                    .list_actions(self, piece_type)
+            );
         }
         actions
     }
     
     pub fn list_legal_actions(&mut self) -> Vec<Action> {
-        let mut actions = vec![];
-        for action in self.list_actions() {
+        let actions = self.list_actions();
+        let mut legals = Vec::with_capacity(actions.len());
+        for action in actions {
             let state = self.play(action);
             let is_legal = self.game.rules.is_legal(self);
             self.restore(state);
             
             if is_legal {
-                actions.push(action);
+                legals.push(action);
             }
         }
-        actions
+        legals
     }
 
     pub fn list_captures(&mut self, mask: BitBoard<T>) -> BitBoard<T> {
