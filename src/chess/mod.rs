@@ -258,7 +258,7 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
     }
 
     fn gen_zobrist(&self, board: &mut Board<T, N>, seed: u64) -> ZobristTable {
-        let pieces = board.game.pieces.len();
+        let pieces = N;
         let squares = (board.game.bounds.rows * board.game.bounds.cols) as usize;
         let teams = 2;
 
@@ -274,16 +274,16 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
     }
 
     fn hash(&self, board: &mut Board<T, N>, table: &ZobristTable) -> u64 {
-        let mut attrs = vec![];
+        let mut attrs = Vec::with_capacity(30);
 
-        let pieces = board.game.pieces.len();
+        let pieces = N;
         let squares = (board.game.bounds.rows * board.game.bounds.cols) as usize;
 
         let mut features = 0;
 
         for team in [Team::White, Team::Black] {
             let team_index = team.index();
-            for piece in 0..board.state.pieces.len() {
+            for piece in 0..N {
                 let piece_team_board = board.state.pieces[piece as usize].and(board.state.team(team));
                 for square in piece_team_board.iter() {
                     attrs.push(

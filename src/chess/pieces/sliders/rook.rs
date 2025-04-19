@@ -60,12 +60,12 @@ impl<T: BitInt, const N: usize> PieceRules<T, N> for RookRules {
 
     fn list_actions(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
         let moving_team = board.state.team_to_move();
-        let mut actions: Vec<Action> = Vec::with_capacity(4);
+        let mut actions: Vec<Action> = Vec::with_capacity(8);
 
         let piece = piece_index as u8;
         for rook in board.state.pieces[piece_index].and(moving_team).iter() {
             let pos = rook as usize;
-            let stored_pos = rook as u8;
+            let stored_pos = rook as u16;
             
             let up = ray_attacks_forward(board, pos, piece_index, UP);
             let down = ray_attacks_backward(board, pos, piece_index, DOWN);
@@ -74,7 +74,7 @@ impl<T: BitInt, const N: usize> PieceRules<T, N> for RookRules {
 
             let moves = up.or(down).or(right).or(left).and_not(moving_team);
             for movement in moves.iter() {
-                actions.push(Action::from(stored_pos, movement as u8, piece))
+                actions.push(Action::from(stored_pos, movement as u16, piece))
             }
         }
 

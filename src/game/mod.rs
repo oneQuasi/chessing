@@ -139,9 +139,9 @@ impl<T : BitInt, const N: usize> BoardState<T, N> {
         self.team(self.moving_team.next())
     }
 
-    pub fn piece_at(&self, square: u8) -> Option<usize> {
+    pub fn piece_at(&self, square: u16) -> Option<usize> {
         let at = BitBoard::index(square);
-        for piece in 0..self.pieces.len() {
+        for piece in 0..N {
             if self.pieces[piece].and(at).is_set() {
                 return Some(piece);
             }
@@ -163,19 +163,19 @@ impl<'a, T : BitInt, const N: usize> Board<'a, T, N> {
     pub fn load(&mut self, pos: &str) {
         self.game.rules.load(self, pos);
 
-        for index in 0..self.game.pieces.len() {
+        for index in 0..N {
             self.game.pieces[index].rules.load(self, index);
         }
     }
 
     pub fn load_pieces(&mut self, pos: &str) {
         for (y, row) in pos.split("/").enumerate() {
-            let y = y as u8;
-            let mut x: u8 = 0;
+            let y = y as u16;
+            let mut x: u16 = 0;
 
             for char in row.chars() {
                 if let Some(skip) = char.to_digit(10) {
-                    x += skip as u8;
+                    x += skip as u16;
                     continue;
                 }
 
@@ -203,31 +203,35 @@ impl<'a, T : BitInt, const N: usize> Board<'a, T, N> {
     }
 
     pub fn list_actions(&mut self) -> Vec<Action> {
-        let mut actions: Vec<Action> = Vec::with_capacity(40);
-        for piece_type in 0..self.game.pieces.len() {
-            let mut piece_actions = self.game.pieces[piece_type].rules.list_actions(self, piece_type);
-            actions.append(&mut piece_actions);
+        let mut actions = Vec::with_capacity(40); // Pre-allocate as you did
+        for piece_type in 0..N {
+            actions.extend(
+                self.game.pieces[piece_type]
+                    .rules
+                    .list_actions(self, piece_type)
+            );
         }
         actions
     }
     
     pub fn list_legal_actions(&mut self) -> Vec<Action> {
-        let mut actions = vec![];
-        for action in self.list_actions() {
+        let actions = self.list_actions();
+        let mut legals = Vec::with_capacity(actions.len());
+        for action in actions {
             let state = self.play(action);
             let is_legal = self.game.rules.is_legal(self);
             self.restore(state);
             
             if is_legal {
-                actions.push(action);
+                legals.push(action);
             }
         }
-        actions
+        legals
     }
 
     pub fn list_captures(&mut self, mask: BitBoard<T>) -> BitBoard<T> {
         let mut captures = BitBoard::empty();
-        for piece_type in 0..self.game.pieces.len() {
+        for piece_type in 0..N {
             let piece_mask = self.game.pieces[piece_type].rules.capture_mask(self, piece_type, mask);
             captures = piece_mask.or(captures);
         }
@@ -238,7 +242,7 @@ impl<'a, T : BitInt, const N: usize> Board<'a, T, N> {
         self.game.rules.game_state(self, actions)
     }
 
-    pub fn piece_at(&self, square: u8) -> Option<usize> {
+    pub fn piece_at(&self, square: u16) -> Option<usize> {
         self.state.piece_at(square)
     }
 

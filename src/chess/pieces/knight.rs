@@ -44,10 +44,10 @@ impl<T: BitInt, const N: usize> PieceRules<T, N> for KnightRules {
 
         let piece = piece_index as u8;
         for knight in board.state.pieces[piece_index].and(moving_team).iter() {
-            let pos = knight as u8;
+            let pos = knight as u16;
             let moves = board.game.lookup[piece_index][0][knight as usize].and_not(moving_team);
             for movement in moves.iter() {
-                actions.push(Action::from(pos, movement as u8, piece))
+                actions.push(Action::from(pos, movement as u16, piece))
             }
         }
     

@@ -4,8 +4,8 @@ use super::{Board, BoardState, Team};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Action {
-    pub from: u8,
-    pub to: u8,
+    pub from: u16,
+    pub to: u16,
     pub info: u8,
     pub piece: u8
 }
@@ -16,7 +16,7 @@ pub enum ActionRecord {
     Null()
 }
 
-pub fn index_to_square(index: u8) -> String {
+pub fn index_to_square(index: u16) -> String {
     if index > 63 {
         return format!("N/A");
     }
@@ -30,7 +30,7 @@ pub fn index_to_square(index: u8) -> String {
     format!("{}{}", file_char, rank_char)
 }
 
-pub fn square_to_index(square: &str) -> Option<u8> {
+pub fn square_to_index(square: &str) -> Option<u16> {
     let bytes = square.as_bytes();
     if bytes.len() != 2 {
         return None;
@@ -46,11 +46,11 @@ pub fn square_to_index(square: &str) -> Option<u8> {
     let file_index = file - b'a';
     let rank_index = rank - b'1';
 
-    Some(rank_index * 8 + file_index)
+    Some((rank_index * 8 + file_index) as u16)
 }
 
 impl Action {
-    pub fn from(from: u8, to: u8, piece: u8) -> Action {
+    pub fn from(from: u16, to: u16, piece: u8) -> Action {
         Action { from, to, piece, info: 0 }
     }
 

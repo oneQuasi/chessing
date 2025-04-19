@@ -54,6 +54,8 @@ for action in board.list_actions() {
 
 `chessing` isn't meant to be the fastest for move generation, but should still perform decently. If you only want to support Chess and FRC Chess, without caring for other variants, use [cozy-chess](https://github.com/analog-hors/cozy-chess), which is about five times faster in my testing.
 
+`chessing` supports arbitrarily sized boards. You can define your own type compatible implementing `num::PrimInt` and `num::Unsigned`, or you can use the builtin `SizedInt` type.
+
 ## Implementation
 
 Implementing a Game requires processing distinct logic for pieces and games.
