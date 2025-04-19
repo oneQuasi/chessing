@@ -74,8 +74,8 @@ pub trait GameRules<T : BitInt, const N: usize> {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Team {
-    White,
-    Black
+    White = 0,
+    Black = 1
 }
 
 impl Team {
@@ -87,10 +87,7 @@ impl Team {
     }
 
     pub fn index(self) -> usize {
-        match self {
-            Team::White => 0,
-            Team::Black => 1
-        }
+        self as usize
     }
 }
 
