@@ -96,16 +96,37 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
     }
     
     fn attacks(&self, board: &mut Board<T, N>, mask: BitBoard<T>) -> BitBoard<T> {
-        let mut captures = BitBoard::default();
+        let pawn = Pawn.attacks(board, 0, mask);
+        if pawn.and(mask).set() {
+            return pawn;
+        }
 
-        captures = captures.or(Pawn.attacks(board, 0, mask));
-        captures = captures.or(Knight.attacks(board, 1, mask));
-        captures = captures.or(Bishop.attacks(board, 2, mask));
-        captures = captures.or(Rook.attacks(board, 3, mask));
-        captures = captures.or(Queen.attacks(board, 4, mask));
-        captures = captures.or(King.attacks(board, 5, mask));
+        let knight = Knight.attacks(board, 1, mask);
+        if knight.and(mask).set() {
+            return knight;
+        }
+        
+        let king = King.attacks(board, 5, mask);
+        if king.and(mask).set() {
+            return king;
+        }
 
-        captures
+        let bishop = Bishop.attacks(board, 2, mask);
+        if bishop.and(mask).set() {
+            return bishop;
+        }
+
+        let rook = Rook.attacks(board, 3, mask);
+        if rook.and(mask).set() {
+            return rook;
+        }
+
+        let queen = Queen.attacks(board, 4, mask);
+        if queen.and(mask).set() {
+            return queen;
+        }
+
+        BitBoard::default()
     }
 
     fn play(&self, board: &mut Board<T, N>, act: Action) {
