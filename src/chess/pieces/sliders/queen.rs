@@ -58,7 +58,6 @@ impl Queen {
 
     pub fn attacks<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, mask: BitBoard<T>) -> BitBoard<T> {
         let moving_team = board.state.team_to_move();
-        let mut captures = BitBoard::default();
 
         for queen in board.state.pieces[piece_index].and(moving_team).iter() {
             let pos = queen as usize;
@@ -87,10 +86,12 @@ impl Queen {
                 moves = moves.or(up_right).or(up_left).or(down_right).or(down_left);
             }
 
-            captures = captures.or(moves);
+            if moves.and(mask).set() {
+                return moves;
+            }
         }
 
-        captures
+        BitBoard::default()
     }
 
     pub fn actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {

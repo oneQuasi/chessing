@@ -28,13 +28,15 @@ impl Knight {
         }
     }
     
-    pub fn attacks<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, _: BitBoard<T>) -> BitBoard<T> {
-        let mut mask = BitBoard::default();
+    pub fn attacks<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, mask: BitBoard<T>) -> BitBoard<T> {
         let moving_team = board.state.team_to_move();
         for knight in board.state.pieces[piece_index].and(moving_team).iter() {
-            mask = mask.or(board.game.lookup[piece_index][0][knight as usize]);
+            let attacks = board.game.lookup[piece_index][0][knight as usize];
+            if attacks.and(mask).set() {
+                return mask;
+            }
         }
-        mask
+        BitBoard::default()
     }
 
 

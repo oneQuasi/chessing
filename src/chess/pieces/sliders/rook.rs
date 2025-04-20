@@ -37,7 +37,6 @@ impl Rook {
 
     pub fn attacks<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, mask: BitBoard<T>) -> BitBoard<T> {
         let moving_team = board.state.team_to_move();
-        let mut captures = BitBoard::default();
 
         for rook in board.state.pieces[piece_index].and(moving_team).iter() {
             let pos = rook as usize;
@@ -52,10 +51,13 @@ impl Rook {
             let right = ray_attacks_forward(board, pos, piece_index, RIGHT);
 
             let moves = up.or(down).or(left).or(right);
-            captures = captures.or(moves);
+            
+            if moves.and(mask).set() {
+                return moves;
+            }
         }
 
-        captures
+        BitBoard::default()
     }
 
     pub fn actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
