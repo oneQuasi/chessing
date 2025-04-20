@@ -199,7 +199,7 @@ impl<T: BitInt> BitBoard<T> {
         }
     }
 
-    pub fn empty() -> BitBoard<T> {
+    pub fn default() -> BitBoard<T> {
         BitBoard(T::zero())
     }
 
@@ -249,21 +249,21 @@ impl<T: BitInt> BitBoard<T> {
         BitPositions::new(self.0)
     }
 
-    pub fn is_set(self) -> bool {
+    pub fn set(self) -> bool {
         self.0 != T::zero()
     }
 
-    pub fn is_empty(self) -> bool {
+    pub fn empty(self) -> bool {
         self.0 == T::zero()
     }
 
     pub fn bitscan_forward(self) -> u32 {
-        assert!(self.is_set(), "BitBoard must be set to BitScan");
+        assert!(self.set(), "BitBoard must be set to BitScan");
         self.0.trailing_zeros()
     }
 
     pub fn bitscan_backward(self) -> u32 {
-        assert!(self.is_set(), "BitBoard must be set to BitScan");
+        assert!(self.set(), "BitBoard must be set to BitScan");
         T::zero().count_zeros() - 1 - self.0.leading_zeros()
     }
 }

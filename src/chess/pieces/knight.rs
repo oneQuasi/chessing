@@ -28,8 +28,8 @@ impl Knight {
         }
     }
     
-    pub fn capture_mask<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, _: BitBoard<T>) -> BitBoard<T> {
-        let mut mask = BitBoard::empty();
+    pub fn attacks<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, _: BitBoard<T>) -> BitBoard<T> {
+        let mut mask = BitBoard::default();
         let moving_team = board.state.team_to_move();
         for knight in board.state.pieces[piece_index].and(moving_team).iter() {
             mask = mask.or(board.game.lookup[piece_index][0][knight as usize]);
@@ -38,7 +38,7 @@ impl Knight {
     }
 
 
-    pub fn list_actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
+    pub fn actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
         let moving_team = board.state.team_to_move();
         let mut actions: Vec<Action> = Vec::with_capacity(8);
 
@@ -52,9 +52,5 @@ impl Knight {
         }
     
         actions
-    }
-
-    pub fn make_move<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, action: Action) {
-        make_chess_move(&mut board.state, action)
     }
 }

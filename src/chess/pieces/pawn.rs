@@ -103,11 +103,11 @@ fn list_white_pawn_actions<T: BitInt, const N: usize>(board: &mut Board<T, N>, p
                 if was_double_move {
                     let capture = last_move.from - 8;
                     let target = BitBoard::<T>::index(capture.into());
-                    if possible_left_captures.and(target).is_set() {
+                    if possible_left_captures.and(target).set() {
                         add_white_action(board, &mut actions, Action::from(capture - 8 + 1, capture, piece).with_info(1));
                     }
 
-                    if possible_right_captures.and(target).is_set() {
+                    if possible_right_captures.and(target).set() {
                         add_white_action(board, &mut actions, Action::from(capture - 8 - 1, capture, piece).with_info(1));
                     }
                 }
@@ -174,11 +174,11 @@ fn list_black_pawn_actions<T: BitInt, const N: usize>(board: &mut Board<T, N>, p
                 if was_double_move {
                     let capture = last_move.from + 8;
                     let target = BitBoard::<T>::index(capture.into());
-                    if possible_left_captures.and(target).is_set() {
+                    if possible_left_captures.and(target).set() {
                         add_black_action(board, &mut actions, Action::from(capture + 8 + 1, capture, piece).with_info(1));
                     }
 
-                    if possible_right_captures.and(target).is_set() {
+                    if possible_right_captures.and(target).set() {
                         add_black_action(board, &mut actions, Action::from(capture + 8 - 1, capture, piece).with_info(1));
                     }
                 }
@@ -189,7 +189,7 @@ fn list_black_pawn_actions<T: BitInt, const N: usize>(board: &mut Board<T, N>, p
     actions
 }
 
-fn make_en_passant_move<T: BitInt, const N: usize>(state: &mut BoardState<T, N>, action: Action) {
+pub fn make_en_passant_move<T: BitInt, const N: usize>(state: &mut BoardState<T, N>, action: Action) {
     let team = state.moving_team;
     let from = BitBoard::index(action.from);
     let to = BitBoard::index(action.to);
@@ -218,7 +218,7 @@ fn make_en_passant_move<T: BitInt, const N: usize>(state: &mut BoardState<T, N>,
     state.first_move = state.first_move.xor(from).xor(taken);
 }
 
-fn make_promotion_move<T: BitInt, const N: usize>(state: &mut BoardState<T, N>, action: Action) {
+pub fn make_promotion_move<T: BitInt, const N: usize>(state: &mut BoardState<T, N>, action: Action) {
     let piece_index = action.piece as usize;
     let victim_index = state.piece_at(action.to);
     let promoted_piece_type = action.info - 2;
@@ -289,7 +289,7 @@ impl Pawn {
         board.state.first_move = board.state.first_move.and_not(moved_white_pawns).and_not(moved_black_pawns);
     }
 
-    pub fn list_actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
+    pub fn actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
         if board.state.moving_team == Team::White {
             list_white_pawn_actions(board, piece_index)
         } else {
@@ -297,19 +297,11 @@ impl Pawn {
         }
     }
 
-    pub fn capture_mask<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, _: BitBoard<T>) -> BitBoard<T> {
+    pub fn attacks<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, _: BitBoard<T>) -> BitBoard<T> {
         if board.state.moving_team == Team::White {
             list_white_pawn_captures(board, piece_index)
         } else {
             list_black_pawn_captures(board, piece_index)
-        }
-    }
-
-    pub fn make_move<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, action: Action) {
-        match action.info {
-            0 => make_chess_move(&mut board.state, action),
-            1 => make_en_passant_move(&mut board.state, action),
-            _ => make_promotion_move(&mut board.state, action)
         }
     }
 

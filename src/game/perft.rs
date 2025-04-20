@@ -7,7 +7,7 @@ impl<'a, T : BitInt, const N: usize> Board<'a, T, N> {
     pub fn perft(&mut self, depth: usize) -> usize {
         if depth == 0 { return 1; }
     
-        let actions = self.list_actions();
+        let actions = self.actions();
     
         let mut nodes = 0;
         for action in actions {

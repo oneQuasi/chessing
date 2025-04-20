@@ -10,7 +10,7 @@ pub fn ray_attacks_forward<T: BitInt, const N: usize>(board: &mut Board<T, N>, p
     let ray = board.game.lookup[piece_index][dir][pos];
 
     let blocker = ray.and(board.state.black.or(board.state.white));
-    if blocker.is_set() {
+    if blocker.set() {
         let square = blocker.bitscan_forward();
         ray.xor(board.game.lookup[piece_index][dir][square as usize])
     } else {
@@ -23,7 +23,7 @@ pub fn ray_attacks_backward<T: BitInt, const N: usize>(board: &mut Board<T, N>, 
     let ray = board.game.lookup[piece_index][dir][pos];
 
     let blocker = ray.and(board.state.black.or(board.state.white));
-    if blocker.is_set() {
+    if blocker.set() {
         let square = blocker.bitscan_backward();
         ray.xor(board.game.lookup[piece_index][dir][square as usize])
     } else {
@@ -32,11 +32,11 @@ pub fn ray_attacks_backward<T: BitInt, const N: usize>(board: &mut Board<T, N>, 
 }
 
 pub fn repeat<T: BitInt>(mut pos: BitBoard<T>, apply: impl Fn(BitBoard<T>) -> BitBoard<T>) -> BitBoard<T> {
-    let mut out = BitBoard::empty();
+    let mut out = BitBoard::default();
     loop {
         let progress = apply(pos);
 
-        if !progress.is_set() {
+        if !progress.set() {
             return out;
         }
 

@@ -2,9 +2,9 @@
 
 use rustc_hash::FxHashMap as HashMap;
 
-use pieces::{king::King, knight::Knight, pawn::Pawn, sliders::{bishop::Bishop, queen::Queen, rook::Rook}};
+use pieces::{king::{make_castling_move, King}, knight::Knight, pawn::{make_en_passant_move, make_promotion_move, Pawn}, sliders::{bishop::Bishop, queen::Queen, rook::Rook}};
 
-use crate::{bitboard::{BitBoard, BitInt, Bounds}, game::{action::{index_to_square, square_to_index, Action, ActionRecord}, zobrist::ZobristTable, Board, Game, GameRules, GameState, GameTemplate, Team}};
+use crate::{bitboard::{BitBoard, BitInt, Bounds}, game::{action::{index_to_square, make_chess_move, square_to_index, Action, ActionRecord}, zobrist::ZobristTable, Board, Game, GameRules, GameState, GameTemplate, Team}};
 
 pub mod pieces;
 pub mod suite;
@@ -60,50 +60,50 @@ fn extract_castling_rights<T : BitInt, const N: usize>(board: &Board<T, N>) -> C
         white_king_side: unmoved_rooks
             .and(board.state.white)
             .and(right_side)
-            .is_set(),
+            .set(),
 
         white_queen_side: unmoved_rooks
             .and(board.state.white)
             .and(left_side)
-            .is_set(),
+            .set(),
 
         black_king_side: unmoved_rooks
             .and(board.state.black)
             .and(right_side)
-            .is_set(),
+            .set(),
 
         black_queen_side: unmoved_rooks
             .and(board.state.black)
             .and(left_side)
-            .is_set(),
+            .set(),
     }
 }
 
 pub struct ChessProcessor;
 
 impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
-    fn list_actions(&self, board: &mut Board<T, N>) -> Vec<Action> {
+    fn actions(&self, board: &mut Board<T, N>) -> Vec<Action> {
         let mut actions = Vec::with_capacity(100); // Pre-allocate as you did
 
-        actions.extend(Pawn.list_actions(board, 0));
-        actions.extend(Knight.list_actions(board, 1));
-        actions.extend(Bishop.list_actions(board, 2));
-        actions.extend(Rook.list_actions(board, 3));
-        actions.extend(Queen.list_actions(board, 4));
-        actions.extend(King.list_actions(board, 5));
+        actions.extend(Pawn.actions(board, 0));
+        actions.extend(Knight.actions(board, 1));
+        actions.extend(Bishop.actions(board, 2));
+        actions.extend(Rook.actions(board, 3));
+        actions.extend(Queen.actions(board, 4));
+        actions.extend(King.actions(board, 5));
 
         actions
     }
     
-    fn list_captures(&self, board: &mut Board<T, N>, mask: BitBoard<T>) -> BitBoard<T> {
-        let mut captures = BitBoard::empty();
+    fn attacks(&self, board: &mut Board<T, N>, mask: BitBoard<T>) -> BitBoard<T> {
+        let mut captures = BitBoard::default();
 
-        captures = captures.or(Pawn.capture_mask(board, 0, mask));
-        captures = captures.or(Knight.capture_mask(board, 1, mask));
-        captures = captures.or(Bishop.capture_mask(board, 2, mask));
-        captures = captures.or(Rook.capture_mask(board, 3, mask));
-        captures = captures.or(Queen.capture_mask(board, 4, mask));
-        captures = captures.or(King.capture_mask(board, 5, mask));
+        captures = captures.or(Pawn.attacks(board, 0, mask));
+        captures = captures.or(Knight.attacks(board, 1, mask));
+        captures = captures.or(Bishop.attacks(board, 2, mask));
+        captures = captures.or(Rook.attacks(board, 3, mask));
+        captures = captures.or(Queen.attacks(board, 4, mask));
+        captures = captures.or(King.attacks(board, 5, mask));
 
         captures
     }
@@ -111,22 +111,26 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
     fn play(&self, board: &mut Board<T, N>, act: Action) {
         let piece_index = board.piece_at(act.from).expect("Found piece making move");
 
-        match piece_index {
-            0 => Pawn.make_move(board, act),
-            1 => Knight.make_move(board, act),
-            2 => Bishop.make_move(board, act),
-            3 => Rook.make_move(board, act),
-            4 => Queen.make_move(board, act),
-            5 => King.make_move(board, act),
-            _ => unreachable!(),
+        if piece_index == 0 {
+            if act.info == 1 {
+                make_en_passant_move(&mut board.state, act)
+            } else if act.info >= 2 {
+                make_promotion_move(&mut board.state, act)
+            } else {
+                make_chess_move(&mut board.state, act)
+            }
+        } else if piece_index == 5 && act.info == 1 {
+            make_castling_move(&mut board.state, act)
+        } else {
+            make_chess_move(&mut board.state, act)
         }
     }
 
     fn is_legal(&self, board: &mut Board<T, N>) -> bool {
         let king = board.state.pieces[KING].and(board.state.opposite_team());
-        let mask = board.list_captures(king);
+        let mask = board.attacks(king);
 
-        mask.and(king).is_empty()
+        mask.and(king).empty()
     }
 
     fn piece_map(&self) -> Vec<char> {
@@ -203,8 +207,8 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
                 let mut found = false;
     
                 for (piece_index, piece_board) in board.state.pieces.iter().enumerate() {
-                    if piece_board.and(BitBoard::index(idx)).is_set() {
-                        let team = if board.state.white.and(BitBoard::index(idx)).is_set() {
+                    if piece_board.and(BitBoard::index(idx)).set() {
+                        let team = if board.state.white.and(BitBoard::index(idx)).set() {
                             Team::White
                         } else {
                             Team::Black
@@ -252,16 +256,16 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
     
         let mut castling = String::new();
     
-        if board.state.first_move.and(board.state.white.and(right_side)).or(board.state.pieces[ROOK].and(board.state.white).and(right_side)).is_empty() == false {
+        if board.state.first_move.and(board.state.white.and(right_side)).or(board.state.pieces[ROOK].and(board.state.white).and(right_side)).empty() == false {
             castling.push('K');
         }
-        if board.state.first_move.and(board.state.white.and(left_side)).or(board.state.pieces[ROOK].and(board.state.white).and(left_side)).is_empty() == false {
+        if board.state.first_move.and(board.state.white.and(left_side)).or(board.state.pieces[ROOK].and(board.state.white).and(left_side)).empty() == false {
             castling.push('Q');
         }
-        if board.state.first_move.and(board.state.black.and(right_side)).or(board.state.pieces[ROOK].and(board.state.black).and(right_side)).is_empty() == false {
+        if board.state.first_move.and(board.state.black.and(right_side)).or(board.state.pieces[ROOK].and(board.state.black).and(right_side)).empty() == false {
             castling.push('k');
         }
-        if board.state.first_move.and(board.state.black.and(left_side)).or(board.state.pieces[ROOK].and(board.state.black).and(left_side)).is_empty() == false {
+        if board.state.first_move.and(board.state.black.and(left_side)).or(board.state.pieces[ROOK].and(board.state.black).and(left_side)).empty() == false {
             castling.push('q');
         }
     
@@ -295,10 +299,10 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
         if actions.len() == 0 {
             let king = board.state.pieces[KING].and(board.state.team_to_move());
             board.state.moving_team = board.state.moving_team.next();
-            let captures = board.list_captures(king);
+            let captures = board.attacks(king);
             board.state.moving_team = board.state.moving_team.next();
 
-            if captures.and(king).is_set() {
+            if captures.and(king).set() {
                 GameState::Win(board.state.moving_team.next())
             } else {
                 GameState::Draw

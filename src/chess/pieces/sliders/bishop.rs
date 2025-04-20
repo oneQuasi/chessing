@@ -35,14 +35,14 @@ impl Bishop {
         }
     }
 
-    pub fn capture_mask<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, mask: BitBoard<T>) -> BitBoard<T> {
+    pub fn attacks<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, mask: BitBoard<T>) -> BitBoard<T> {
         let moving_team = board.state.team_to_move();
-        let mut captures = BitBoard::empty();
+        let mut captures = BitBoard::default();
 
         for bishop in board.state.pieces[piece_index].and(moving_team).iter() {
             let pos = bishop as usize;
 
-            if board.game.lookup[piece_index][ALL][pos].and(mask).is_empty() {
+            if board.game.lookup[piece_index][ALL][pos].and(mask).empty() {
                 continue;
             }
             
@@ -58,7 +58,7 @@ impl Bishop {
         captures
     }
 
-    pub fn list_actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
+    pub fn actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
         let moving_team = board.state.team_to_move();
         let bishops = board.state.pieces[piece_index];
 
@@ -81,9 +81,5 @@ impl Bishop {
         }
 
         actions
-    }
-
-    pub fn make_move<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, action: Action) {
-        make_chess_move(&mut board.state, action)
     }
 }

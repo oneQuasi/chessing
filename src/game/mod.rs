@@ -67,8 +67,8 @@ pub trait GameRules<T : BitInt, const N: usize> {
 
     fn piece_map(&self) -> Vec<char>;
 
-    fn list_actions(&self, board: &mut Board<T, N>) -> Vec<Action>;
-    fn list_captures(&self, board: &mut Board<T, N>, mask: BitBoard<T>) -> BitBoard<T>;
+    fn actions(&self, board: &mut Board<T, N>) -> Vec<Action>;
+    fn attacks(&self, board: &mut Board<T, N>, mask: BitBoard<T>) -> BitBoard<T>;
     fn play(&self, board: &mut Board<T, N>, act: Action);
 
     fn is_legal(&self, board: &mut Board<T, N>) -> bool;
@@ -116,10 +116,10 @@ impl<T : BitInt, const N: usize> BoardState<T, N> {
     pub fn new() -> Self {
         Self {
             moving_team: Team::White,
-            black: BitBoard::empty(),
-            white: BitBoard::empty(),
-            first_move: BitBoard::empty(),
-            pieces: [ BitBoard::empty(); N ]
+            black: BitBoard::default(),
+            white: BitBoard::default(),
+            first_move: BitBoard::default(),
+            pieces: [ BitBoard::default(); N ]
         }
     }
 
@@ -144,7 +144,7 @@ impl<T : BitInt, const N: usize> BoardState<T, N> {
     pub fn piece_at(&self, square: u16) -> Option<usize> {
         let at = BitBoard::index(square);
         for piece in 0..N {
-            if self.pieces[piece].and(at).is_set() {
+            if self.pieces[piece].and(at).set() {
                 return Some(piece);
             }
         }
@@ -200,12 +200,12 @@ impl<'a, T : BitInt, const N: usize> Board<'a, T, N> {
         }
     }
 
-    pub fn list_actions(&mut self) -> Vec<Action> {
-        self.game.rules.list_actions(self)
+    pub fn actions(&mut self) -> Vec<Action> {
+        self.game.rules.actions(self)
     }
     
-    pub fn list_legal_actions(&mut self) -> Vec<Action> {
-        let actions = self.list_actions();
+    pub fn legals(&mut self) -> Vec<Action> {
+        let actions = self.actions();
         let mut legals = Vec::with_capacity(actions.len());
         for action in actions {
             let state = self.play(action);
@@ -220,8 +220,8 @@ impl<'a, T : BitInt, const N: usize> Board<'a, T, N> {
         legals
     }
 
-    pub fn list_captures(&mut self, mask: BitBoard<T>) -> BitBoard<T> {
-        self.game.rules.list_captures(self, mask)
+    pub fn attacks(&mut self, mask: BitBoard<T>) -> BitBoard<T> {
+        self.game.rules.attacks(self, mask)
     }
 
     pub fn game_state(&mut self, actions: &[Action]) -> GameState {
@@ -245,7 +245,7 @@ impl<'a, T : BitInt, const N: usize> Board<'a, T, N> {
     }
 
     pub fn find_action(&mut self, action: &str) -> Action {
-        let actions = self.list_actions();
+        let actions = self.actions();
         return actions.iter().find(|el| self.display_action(**el).contains(&action.to_string())).map(|el| *el).expect("Could not find action"); 
     }
     

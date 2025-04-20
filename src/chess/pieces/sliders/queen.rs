@@ -56,20 +56,20 @@ impl Queen {
         }
     }
 
-    pub fn capture_mask<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, mask: BitBoard<T>) -> BitBoard<T> {
+    pub fn attacks<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, mask: BitBoard<T>) -> BitBoard<T> {
         let moving_team = board.state.team_to_move();
-        let mut captures = BitBoard::empty();
+        let mut captures = BitBoard::default();
 
         for queen in board.state.pieces[piece_index].and(moving_team).iter() {
             let pos = queen as usize;
             
-            if board.game.lookup[piece_index][ALL][pos].and(mask).is_empty() {
+            if board.game.lookup[piece_index][ALL][pos].and(mask).empty() {
                 continue;
             }
 
-            let mut moves = BitBoard::empty();
+            let mut moves = BitBoard::default();
             
-            if board.game.lookup[piece_index][SIDES][pos].and(mask).is_set() {
+            if board.game.lookup[piece_index][SIDES][pos].and(mask).set() {
                 let up = ray_attacks_forward(board, pos, piece_index, UP);
                 let down = ray_attacks_backward(board, pos, piece_index, DOWN);
                 let left = ray_attacks_backward(board, pos, piece_index, LEFT);
@@ -78,7 +78,7 @@ impl Queen {
                 moves = moves.or(up).or(down).or(left).or(right);
             }
 
-            if board.game.lookup[piece_index][DIAGONALS][pos].and(mask).is_set() {
+            if board.game.lookup[piece_index][DIAGONALS][pos].and(mask).set() {
                 let up_right = ray_attacks_forward(board, pos, piece_index, UP_RIGHT);
                 let up_left = ray_attacks_forward(board, pos, piece_index, UP_LEFT);
                 let down_right = ray_attacks_backward(board, pos, piece_index, DOWN_RIGHT);
@@ -93,7 +93,7 @@ impl Queen {
         captures
     }
 
-    pub fn list_actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
+    pub fn actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
         let moving_team = board.state.team_to_move();
         let mut actions: Vec<Action> = Vec::with_capacity(12);
 
@@ -119,9 +119,5 @@ impl Queen {
         }
 
         actions
-    }
-
-    pub fn make_move<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, action: Action) {
-        make_chess_move(&mut board.state, action)
     }
 }

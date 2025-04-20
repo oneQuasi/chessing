@@ -107,7 +107,7 @@ pub fn make_chess_move<T : BitInt, const N: usize>(state: &mut BoardState<T, N>,
         }
     }
 
-    if state.first_move.and(from.or(to)).is_set() {
+    if state.first_move.and(from.or(to)).set() {
         state.first_move = state.first_move.and_not(from.or(to));
     }
 }

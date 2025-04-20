@@ -35,7 +35,7 @@ let mut board = chess.default();
 assert_eq!(board.perft(5), 4865609);  
 
 // Generate Actions
-for action in board.list_actions() {
+for action in board.actions() {
     let history = board.play(action);
     let is_legal = board.game.processor.is_legal(&mut board);
     board.restore(history);
@@ -66,11 +66,11 @@ Implementing a Game requires processing distinct logic for pieces and games.
 pub trait PieceRules<T: BitInt, const N: usize> {
     fn process(&self, board: &mut Board<T, N>, piece_index: usize) {}
     
-    fn list_actions(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action>;
+    fn actions(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action>;
     fn make_move(&self, board: &mut Board<T, N>, action: Action);
 
     /// Only useful for chess; allows us to optimize checks
-    fn capture_mask(&self, board: &mut Board<T, N>, piece_index: usize, mask: BitBoard<T>) -> BitBoard<T> {
+    fn attacks(&self, board: &mut Board<T, N>, piece_index: usize, mask: BitBoard<T>) -> BitBoard<T> {
         BitBoard::empty()
     }
 }
@@ -79,9 +79,9 @@ pub trait PieceRules<T: BitInt, const N: usize> {
 `PieceRules` is how you can define pieces and piece behaviors.
 
 - `process` is called after a board is setup, and provides a chance to cache piece moves or otherwise process the board.
-- `list_actions` lists actions that can be made with the piece.
+- `actions` lists actions that can be made with the piece.
 - `make_move` defines how the board changes when you make the move, and returns a `HistoryState` to restore changed BitBoards.
-- `capture_mask` allows for efficiently testing if a piece can see `mask` without needing to generate a list of actions.
+- `attacks` allows for efficiently testing if a piece can see `mask` without needing to generate a list of actions.
 
 Some pieces require other piece types to generate specific moves. For instance, kings depend on rooks for castling moves. To handle this, kings check if a rook piece is in the game before attempting to see if they can castle like so:
 

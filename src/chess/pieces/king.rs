@@ -1,6 +1,6 @@
 use crate::{bitboard::{BitBoard, BitInt}, chess::ROOK, game::{action::{index_to_square, make_chess_move, Action}, Board, BoardState, Game, Team}};
 
-fn make_castling_move<T: BitInt, const N: usize>(state: &mut BoardState<T, N>, action: Action) {
+pub fn make_castling_move<T: BitInt, const N: usize>(state: &mut BoardState<T, N>, action: Action) {
     let piece_index = action.piece as usize;
     let rook_ind = state.piece_at(action.to).expect("Rook must exist in castling move");
 
@@ -50,8 +50,8 @@ impl King {
         }
     }
 
-    pub fn capture_mask<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, _: BitBoard<T>) -> BitBoard<T> {
-        let mut mask = BitBoard::empty();
+    pub fn attacks<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, _: BitBoard<T>) -> BitBoard<T> {
+        let mut mask = BitBoard::default();
         let moving_team = board.state.team_to_move();
         for king in board.state.pieces[piece_index].and(moving_team).iter() {
             mask = mask.or(board.game.lookup[piece_index][0][king as usize]);
@@ -59,7 +59,7 @@ impl King {
         mask
     }
 
-    pub fn list_actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
+    pub fn actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
         let moving_team = board.state.team_to_move();
         let mut actions: Vec<Action> = Vec::with_capacity(8);
         let piece = piece_index as u8;
@@ -73,14 +73,14 @@ impl King {
 
             // Castling: Rook is required
 
-            let king_in_place = board.state.first_move.and(BitBoard::index(pos)).is_set();
+            let king_in_place = board.state.first_move.and(BitBoard::index(pos)).set();
             if !king_in_place { continue; }
 
             for rook in board.state.pieces[ROOK].and(moving_team).and(board.state.first_move).iter() {
                 let between_squares = BitBoard::between(king as usize, rook as usize);
                 
                 // Can't castle if other pieces are in the way.
-                if between_squares.and(board.state.black.or(board.state.white)).is_set() {
+                if between_squares.and(board.state.black.or(board.state.white)).set() {
                     continue;
                 }
                 
@@ -89,12 +89,12 @@ impl King {
 
                 // We'll need the capture mask of the opp team
                 board.state.moving_team = board.state.moving_team.next();
-                let mask = board.list_captures(between_dest_squares);
+                let mask = board.attacks(between_dest_squares);
                 board.state.moving_team = board.state.moving_team.next();
 
 
                 // We can't castle through check or while in check, so we'll have to check if that's the case.
-                if between_dest_squares.or(BitBoard::index(pos)).and(mask).is_set() {
+                if between_dest_squares.or(BitBoard::index(pos)).and(mask).set() {
                     continue;
                 }
 
@@ -108,7 +108,7 @@ impl King {
 
     pub fn display_action<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, action: Action) -> Vec<String> {
         let display = format!("{}{}", index_to_square(action.from), index_to_square(action.to));
-        if BitBoard::index(action.to).and(board.state.team_to_move()).is_set() {
+        if BitBoard::index(action.to).and(board.state.team_to_move()).set() {
             let king_dest = if action.to > action.from { action.from + 2 } else { action.from - 2 };
             let alternate_display = format!("{}{}", index_to_square(action.from), index_to_square(king_dest));
 
@@ -125,7 +125,7 @@ impl King {
     }
 
     pub fn display_uci_action<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, action: Action) -> String {
-        if BitBoard::index(action.to).and(board.state.team_to_move()).is_set() {
+        if BitBoard::index(action.to).and(board.state.team_to_move()).set() {
             let king_dest = if action.to > action.from { action.from + 2 } else { action.from - 2 };
             let alternate_display = format!("{}{}", index_to_square(action.from), index_to_square(king_dest));
 
@@ -134,14 +134,6 @@ impl King {
         } else {
             let display = format!("{}{}", index_to_square(action.from), index_to_square(action.to));
             display
-        }
-    }
-
-    pub fn make_move<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, action: Action) {
-        if action.info == 0 {
-            make_chess_move(&mut board.state, action)
-        } else {
-            make_castling_move(&mut board.state, action)
         }
     }
 }
