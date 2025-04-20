@@ -1,3 +1,5 @@
+use std::ops::Index;
+
 use arrayvec::ArrayVec;
 use rustc_hash::FxHashMap as HashMap;
 
@@ -64,6 +66,8 @@ pub enum GameState {
 pub trait GameRules<T : BitInt, const N: usize> {
     fn load(&self, board: &mut Board<T, N>, pos: &str);
     fn save(&self, board: &mut Board<T, N>) -> String;
+
+    fn piece_map(&self) -> Vec<char>;
 
     fn list_actions(&self, board: &mut Board<T, N>) -> Vec<Action>;
     fn list_captures(&self, board: &mut Board<T, N>, mask: BitBoard<T>) -> BitBoard<T>;
@@ -164,7 +168,8 @@ impl<'a, T : BitInt, const N: usize> Board<'a, T, N> {
         self.game.rules.load(self, pos);
     }
 
-    pub fn load_pieces(&mut self, pos: &str, pieces: HashMap<char, usize>) {
+    pub fn load_pieces(&mut self, pos: &str) {
+        let piece_map = self.game.rules.piece_map();
         for (y, row) in pos.split("/").enumerate() {
             let y = y as u16;
             let mut x: u16 = 0;
@@ -175,9 +180,9 @@ impl<'a, T : BitInt, const N: usize> Board<'a, T, N> {
                     continue;
                 }
 
-                let matched_piece = pieces.get(&char.to_ascii_lowercase());
+                let matched_piece = piece_map.iter().position(|&n| n == char.to_ascii_lowercase());
 
-                if let Some(&index) = matched_piece {
+                if let Some(index) = matched_piece {
                     let piece = BitBoard::coords(x, y, self.game.bounds);
                     let is_black = char.is_lowercase();
 

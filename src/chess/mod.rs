@@ -129,19 +129,18 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
         mask.and(king).is_empty()
     }
 
+    fn piece_map(&self) -> Vec<char> {
+        vec![
+            'p', 'n', 'b', 'r', 'q', 'k'
+        ]
+    }
+
     fn load(&self, board: &mut Board<T, N>, pos: &str) {
         let parts: Vec<String> = pos.split(" ").map(|el| el.to_string()).collect();
 
-        let mut piece_map: HashMap<char, usize> = HashMap::default();
-        piece_map.insert('p', 0);
-        piece_map.insert('n', 1);
-        piece_map.insert('b', 2);
-        piece_map.insert('r', 3);
-        piece_map.insert('q', 4);
-        piece_map.insert('k', 5);
 
         // Piece Placement
-        board.load_pieces(&parts[0], piece_map);
+        board.load_pieces(&parts[0]);
 
         // Team to Move
         board.state.moving_team = if parts[1] == "w" { Team::White } else { Team::Black };
@@ -198,8 +197,8 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
     }
 
     fn save(&self, board: &mut Board<T, N>) -> String {
-        // 1. Piece Placement
         let mut piece_rows = Vec::new();
+        let piece_map = board.game.rules.piece_map();
         for row in (0..board.game.bounds.rows).rev() {
             let mut row_str = String::new();
             let mut empty_count = 0;
@@ -221,16 +220,8 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
                             empty_count = 0;
                         }
     
-                        let piece_char = match piece_index {
-                            0 => "p",
-                            1 => "n",
-                            2 => "b",
-                            3 => "r",
-                            4 => "q",
-                            5 => "k",
-                            _ => unreachable!()
-                        };
-                        row_str.push_str(&match team {
+                        let piece_char = piece_map[piece_index];
+                        row_str.push(match team {
                             Team::White => piece_char.to_ascii_uppercase(),
                             Team::Black => piece_char.to_ascii_lowercase(),
                         });
