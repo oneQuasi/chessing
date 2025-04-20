@@ -27,7 +27,6 @@ pub type PieceLookup<T > = Vec<AttackLookup<T>>;
 
 pub struct Game<T : BitInt, const N: usize> {
     pub rules: Box<dyn GameRules<T, N>>,
-    pub pieces: Vec<Piece<T, N>>,
     pub edges: Vec<Edges<T>>,
     pub bounds: Bounds,
     pub default_pos: String,
@@ -65,6 +64,10 @@ pub enum GameState {
 pub trait GameRules<T : BitInt, const N: usize> {
     fn load(&self, board: &mut Board<T, N>, pos: &str);
     fn save(&self, board: &mut Board<T, N>) -> String;
+
+    fn list_actions(&self, board: &mut Board<T, N>) -> Vec<Action>;
+    fn list_captures(&self, board: &mut Board<T, N>, mask: BitBoard<T>) -> BitBoard<T>;
+    fn play(&self, board: &mut Board<T, N>, act: Action);
 
     fn is_legal(&self, board: &mut Board<T, N>) -> bool;
     fn game_state(&self, board: &mut Board<T, N>, legal_actions: &[Action]) -> GameState;
@@ -159,13 +162,9 @@ impl<'a, T : BitInt, const N: usize> Board<'a, T, N> {
 
     pub fn load(&mut self, pos: &str) {
         self.game.rules.load(self, pos);
-
-        for index in 0..N {
-            self.game.pieces[index].rules.load(self, index);
-        }
     }
 
-    pub fn load_pieces(&mut self, pos: &str) {
+    pub fn load_pieces(&mut self, pos: &str, pieces: HashMap<char, usize>) {
         for (y, row) in pos.split("/").enumerate() {
             let y = y as u16;
             let mut x: u16 = 0;
@@ -176,10 +175,9 @@ impl<'a, T : BitInt, const N: usize> Board<'a, T, N> {
                     continue;
                 }
 
-                let matched_piece = self.game.pieces.iter().enumerate()
-                    .find(|el| el.1.symbol.to_lowercase() == char.to_string().to_lowercase());
+                let matched_piece = pieces.get(&char.to_ascii_lowercase());
 
-                if let Some((index, _)) = matched_piece {
+                if let Some(&index) = matched_piece {
                     let piece = BitBoard::coords(x, y, self.game.bounds);
                     let is_black = char.is_lowercase();
 
@@ -200,15 +198,7 @@ impl<'a, T : BitInt, const N: usize> Board<'a, T, N> {
     }
 
     pub fn list_actions(&mut self) -> Vec<Action> {
-        let mut actions = Vec::with_capacity(40); // Pre-allocate as you did
-        for piece_type in 0..N {
-            actions.extend(
-                self.game.pieces[piece_type]
-                    .rules
-                    .list_actions(self, piece_type)
-            );
-        }
-        actions
+        self.game.rules.list_actions(self)
     }
     
     pub fn list_legal_actions(&mut self) -> Vec<Action> {
@@ -223,16 +213,12 @@ impl<'a, T : BitInt, const N: usize> Board<'a, T, N> {
                 legals.push(action);
             }
         }
+
         legals
     }
 
     pub fn list_captures(&mut self, mask: BitBoard<T>) -> BitBoard<T> {
-        let mut captures = BitBoard::empty();
-        for piece_type in 0..N {
-            let piece_mask = self.game.pieces[piece_type].rules.capture_mask(self, piece_type, mask);
-            captures = piece_mask.or(captures);
-        }
-        captures
+        self.game.rules.list_captures(self, mask)
     }
 
     pub fn game_state(&mut self, actions: &[Action]) -> GameState {
@@ -245,12 +231,14 @@ impl<'a, T : BitInt, const N: usize> Board<'a, T, N> {
 
     pub fn display_action(&mut self, action: Action) -> Vec<String> {
         let piece_index = self.piece_at(action.from).expect("Found displayed piece");
-        self.game.pieces[piece_index as usize].rules.display_action(self, action)
+        vec![]
+        //TODO! self.game.pieces[piece_index as usize].rules.display_action(self, action)
     }
 
     pub fn display_uci_action(&mut self, action: Action) -> String {
         let piece_index = self.piece_at(action.from).expect("Found displayed piece");
-        self.game.pieces[piece_index as usize].rules.display_uci_action(self, action)
+        "".to_string()
+        //TODO! self.game.pieces[piece_index as usize].rules.display_uci_action(self, action)
     }
 
     pub fn find_action(&mut self, action: &str) -> Action {
@@ -274,10 +262,9 @@ impl<'a, T : BitInt, const N: usize> Board<'a, T, N> {
     pub fn play(&mut self, action: Action) -> BoardState<T, N> {
         let state = self.state.clone();
 
-        let piece_index = self.piece_at(action.from).expect("Found piece making move");
-        self.game.pieces[piece_index as usize].rules.make_move(self, action);
-        self.state.moving_team = state.moving_team.next();
+        self.game.rules.play(self, action);
 
+        self.state.moving_team = state.moving_team.next();
         self.history.push(ActionRecord::Action(action));
         state
     }

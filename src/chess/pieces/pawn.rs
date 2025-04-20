@@ -315,7 +315,8 @@ impl<T: BitInt, const N: usize> PieceRules<T, N> for PawnRules {
 
     fn display_action(&self, board: &mut Board<T, N>, action: Action) -> Vec<String> {
         let promotion_piece_type = if action.info > 1 {
-            board.game.pieces[(action.info - 2) as usize].symbol.to_lowercase()
+            // TODO! board.game.pieces[(action.info - 2) as usize].symbol.to_lowercase()
+            "".to_string()
         } else { "".to_string() };
 
         vec![
