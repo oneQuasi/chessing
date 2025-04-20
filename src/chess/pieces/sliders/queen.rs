@@ -65,29 +65,33 @@ impl Queen {
             if board.game.lookup[piece_index][ALL][pos].and(mask).empty() {
                 continue;
             }
-
-            let mut moves = BitBoard::default();
             
             if board.game.lookup[piece_index][SIDES][pos].and(mask).set() {
                 let up = ray_attacks_forward(board, pos, piece_index, UP);
-                let down = ray_attacks_backward(board, pos, piece_index, DOWN);
-                let left = ray_attacks_backward(board, pos, piece_index, LEFT);
-                let right = ray_attacks_forward(board, pos, piece_index, RIGHT);
+                if up.and(mask).set() { return up; }
 
-                moves = moves.or(up).or(down).or(left).or(right);
+                let down = ray_attacks_backward(board, pos, piece_index, DOWN);
+                if down.and(mask).set() { return down; }
+
+                let left = ray_attacks_backward(board, pos, piece_index, LEFT);
+                if left.and(mask).set() { return left; }
+            
+                let right = ray_attacks_forward(board, pos, piece_index, RIGHT);
+                if right.and(mask).set() { return right; }
             }
 
             if board.game.lookup[piece_index][DIAGONALS][pos].and(mask).set() {
                 let up_right = ray_attacks_forward(board, pos, piece_index, UP_RIGHT);
+                if up_right.and(mask).set() { return up_right; }
+            
                 let up_left = ray_attacks_forward(board, pos, piece_index, UP_LEFT);
+                if up_left.and(mask).set() { return up_left; }
+            
                 let down_right = ray_attacks_backward(board, pos, piece_index, DOWN_RIGHT);
+                if down_right.and(mask).set() { return down_right; }
+            
                 let down_left = ray_attacks_backward(board, pos, piece_index, DOWN_LEFT);
-
-                moves = moves.or(up_right).or(up_left).or(down_right).or(down_left);
-            }
-
-            if moves.and(mask).set() {
-                return moves;
+                if down_left.and(mask).set() { return down_left; }
             }
         }
 
@@ -96,7 +100,7 @@ impl Queen {
 
     pub fn actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
         let moving_team = board.state.team_to_move();
-        let mut actions: Vec<Action> = Vec::with_capacity(12);
+        let mut actions: Vec<Action> = Vec::with_capacity(27);
 
         let piece = piece_index as u8;
         for queen in board.state.pieces[piece_index].and(moving_team).iter() {

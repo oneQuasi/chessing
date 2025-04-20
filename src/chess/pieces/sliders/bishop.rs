@@ -46,14 +46,16 @@ impl Bishop {
             }
             
             let up_right = ray_attacks_forward(board, pos, piece_index, UP_RIGHT);
+            if up_right.and(mask).set() { return up_right; }
+        
             let up_left = ray_attacks_forward(board, pos, piece_index, UP_LEFT);
+            if up_left.and(mask).set() { return up_left; }
+        
             let down_right = ray_attacks_backward(board, pos, piece_index, DOWN_RIGHT);
+            if down_right.and(mask).set() { return down_right; }
+        
             let down_left = ray_attacks_backward(board, pos, piece_index, DOWN_LEFT);
-
-            let moves = up_right.or(up_left).or(down_right).or(down_left);
-            if moves.and(mask).set() {
-                return moves;
-            }
+            if down_left.and(mask).set() { return down_left; }
         }
 
         BitBoard::default()
@@ -63,7 +65,7 @@ impl Bishop {
         let moving_team = board.state.team_to_move();
         let bishops = board.state.pieces[piece_index];
 
-        let mut actions: Vec<Action> = Vec::with_capacity(8);
+        let mut actions: Vec<Action> = Vec::with_capacity(13);
 
         let piece = piece_index as u8;
         for bishop in bishops.and(moving_team).iter() {

@@ -46,15 +46,16 @@ impl Rook {
             }
             
             let up = ray_attacks_forward(board, pos, piece_index, UP);
-            let down = ray_attacks_backward(board, pos, piece_index, DOWN);
-            let left = ray_attacks_backward(board, pos, piece_index, LEFT);
-            let right = ray_attacks_forward(board, pos, piece_index, RIGHT);
+            if up.and(mask).set() { return up; }
 
-            let moves = up.or(down).or(left).or(right);
-            
-            if moves.and(mask).set() {
-                return moves;
-            }
+            let down = ray_attacks_backward(board, pos, piece_index, DOWN);
+            if down.and(mask).set() { return down; }
+
+            let left = ray_attacks_backward(board, pos, piece_index, LEFT);
+            if left.and(mask).set() { return left; }
+        
+            let right = ray_attacks_forward(board, pos, piece_index, RIGHT);
+            if right.and(mask).set() { return right; }
         }
 
         BitBoard::default()
@@ -62,7 +63,7 @@ impl Rook {
 
     pub fn actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
         let moving_team = board.state.team_to_move();
-        let mut actions: Vec<Action> = Vec::with_capacity(8);
+        let mut actions: Vec<Action> = Vec::with_capacity(14);
 
         let piece = piece_index as u8;
         for rook in board.state.pieces[piece_index].and(moving_team).iter() {
