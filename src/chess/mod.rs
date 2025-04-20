@@ -132,18 +132,17 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
     fn play(&self, board: &mut Board<T, N>, act: Action) {
         let piece_index = board.piece_at(act.from).expect("Found piece making move");
 
-        if piece_index == 0 {
-            if act.info == 1 {
-                make_en_passant_move(&mut board.state, act)
-            } else if act.info >= 2 {
-                make_promotion_move(&mut board.state, act)
-            } else {
-                make_chess_move(&mut board.state, act)
-            }
-        } else if piece_index == 5 && act.info == 1 {
-            make_castling_move(&mut board.state, act)
-        } else {
-            make_chess_move(&mut board.state, act)
+        match piece_index {
+            PAWN => match act.info {
+                0 => make_chess_move(&mut board.state, act),
+                1 => make_en_passant_move(&mut board.state, act),
+                _ => make_promotion_move(&mut board.state, act)
+            },
+            KING => match act.info {
+                0 => make_chess_move(&mut board.state, act),
+                _ => make_castling_move(&mut board.state, act)
+            },
+            _ => make_chess_move(&mut board.state, act)
         }
     }
 
