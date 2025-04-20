@@ -2,9 +2,9 @@
 
 use rustc_hash::FxHashMap as HashMap;
 
-use pieces::{king::KingRules, knight::KnightRules, pawn::PawnRules, sliders::{bishop::BishopRules, queen::QueenRules, rook::RookRules}};
+use pieces::{king::King, knight::Knight, pawn::Pawn, sliders::{bishop::Bishop, queen::Queen, rook::Rook}};
 
-use crate::{bitboard::{BitBoard, BitInt, Bounds}, game::{action::{index_to_square, square_to_index, Action, ActionRecord}, piece::PieceRules, zobrist::ZobristTable, Board, Game, GameRules, GameState, GameTemplate, Team}};
+use crate::{bitboard::{BitBoard, BitInt, Bounds}, game::{action::{index_to_square, square_to_index, Action, ActionRecord}, zobrist::ZobristTable, Board, Game, GameRules, GameState, GameTemplate, Team}};
 
 pub mod pieces;
 pub mod suite;
@@ -85,12 +85,12 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
     fn list_actions(&self, board: &mut Board<T, N>) -> Vec<Action> {
         let mut actions = Vec::with_capacity(100); // Pre-allocate as you did
 
-        actions.extend(PawnRules.list_actions(board, 0));
-        actions.extend(KnightRules.list_actions(board, 1));
-        actions.extend(BishopRules.list_actions(board, 2));
-        actions.extend(RookRules.list_actions(board, 3));
-        actions.extend(QueenRules.list_actions(board, 4));
-        actions.extend(KingRules.list_actions(board, 5));
+        actions.extend(Pawn.list_actions(board, 0));
+        actions.extend(Knight.list_actions(board, 1));
+        actions.extend(Bishop.list_actions(board, 2));
+        actions.extend(Rook.list_actions(board, 3));
+        actions.extend(Queen.list_actions(board, 4));
+        actions.extend(King.list_actions(board, 5));
 
         actions
     }
@@ -98,12 +98,12 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
     fn list_captures(&self, board: &mut Board<T, N>, mask: BitBoard<T>) -> BitBoard<T> {
         let mut captures = BitBoard::empty();
 
-        captures = captures.or(PawnRules.capture_mask(board, 0, mask));
-        captures = captures.or(KnightRules.capture_mask(board, 1, mask));
-        captures = captures.or(BishopRules.capture_mask(board, 2, mask));
-        captures = captures.or(RookRules.capture_mask(board, 3, mask));
-        captures = captures.or(QueenRules.capture_mask(board, 4, mask));
-        captures = captures.or(KingRules.capture_mask(board, 5, mask));
+        captures = captures.or(Pawn.capture_mask(board, 0, mask));
+        captures = captures.or(Knight.capture_mask(board, 1, mask));
+        captures = captures.or(Bishop.capture_mask(board, 2, mask));
+        captures = captures.or(Rook.capture_mask(board, 3, mask));
+        captures = captures.or(Queen.capture_mask(board, 4, mask));
+        captures = captures.or(King.capture_mask(board, 5, mask));
 
         captures
     }
@@ -112,12 +112,12 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
         let piece_index = board.piece_at(act.from).expect("Found piece making move");
 
         match piece_index {
-            0 => PawnRules.make_move(board, act),
-            1 => KnightRules.make_move(board, act),
-            2 => BishopRules.make_move(board, act),
-            3 => RookRules.make_move(board, act),
-            4 => QueenRules.make_move(board, act),
-            5 => KingRules.make_move(board, act),
+            0 => Pawn.make_move(board, act),
+            1 => Knight.make_move(board, act),
+            2 => Bishop.make_move(board, act),
+            3 => Rook.make_move(board, act),
+            4 => Queen.make_move(board, act),
+            5 => King.make_move(board, act),
             _ => unreachable!(),
         }
     }
@@ -188,12 +188,7 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
             board.history.push(ActionRecord::Action(Action::from(one_back, one_forward, PAWN as u8).with_info(1)));
         }
 
-        PawnRules.load(board, 0);
-        KnightRules.load(board, 1);
-        BishopRules.load(board, 2);
-        RookRules.load(board, 3);
-        QueenRules.load(board, 4);
-        KingRules.load(board, 5);
+        Pawn.load(board, 0);
     }
 
     fn save(&self, board: &mut Board<T, N>) -> String {
@@ -404,12 +399,11 @@ impl GameTemplate for Chess {
             ],
         };
 
-        PawnRules.process(&mut game, 0);
-        KnightRules.process(&mut game, 1);
-        BishopRules.process(&mut game, 2);
-        RookRules.process(&mut game, 3);
-        QueenRules.process(&mut game, 4);
-        KingRules.process(&mut game, 5);
+        Knight.process(&mut game, 1);
+        Bishop.process(&mut game, 2);
+        Rook.process(&mut game, 3);
+        Queen.process(&mut game, 4);
+        King.process(&mut game, 5);
 
         game
     }

@@ -4,12 +4,10 @@ use arrayvec::ArrayVec;
 use rustc_hash::FxHashMap as HashMap;
 
 use action::{ActionRecord, Action};
-use piece::Piece;
 use zobrist::ZobristTable;
 
 use crate::bitboard::{BitBoard, BitInt, Bounds, Edges};
 
-pub mod piece;
 pub mod action;
 pub mod perft;
 pub mod suite;

@@ -1,4 +1,4 @@
-use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action, ActionRecord}, piece::{Piece, PieceRules}, Board, BoardState, Team}};
+use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action, ActionRecord}, Board, BoardState, Team}};
 
 #[inline(always)]
 fn list_white_pawn_captures<T: BitInt, const N: usize>(board: &mut Board<T, N>, piece_index: usize) -> BitBoard<T> {
@@ -275,10 +275,10 @@ fn make_promotion_move<T: BitInt, const N: usize>(state: &mut BoardState<T, N>, 
 }
 
 
-pub struct PawnRules;
+pub struct Pawn;
 
-impl<T: BitInt, const N: usize> PieceRules<T, N> for PawnRules {
-    fn load(&self, board: &mut Board<T, N>, piece_index: usize) {
+impl Pawn {
+    pub fn load<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize) {
         let edges = board.game.edges[0];
 
         let pawns = board.state.pieces[piece_index];
@@ -289,7 +289,7 @@ impl<T: BitInt, const N: usize> PieceRules<T, N> for PawnRules {
         board.state.first_move = board.state.first_move.and_not(moved_white_pawns).and_not(moved_black_pawns);
     }
 
-    fn list_actions(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
+    pub fn list_actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
         if board.state.moving_team == Team::White {
             list_white_pawn_actions(board, piece_index)
         } else {
@@ -297,7 +297,7 @@ impl<T: BitInt, const N: usize> PieceRules<T, N> for PawnRules {
         }
     }
 
-    fn capture_mask(&self, board: &mut Board<T, N>, piece_index: usize, _: BitBoard<T>) -> BitBoard<T> {
+    pub fn capture_mask<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, _: BitBoard<T>) -> BitBoard<T> {
         if board.state.moving_team == Team::White {
             list_white_pawn_captures(board, piece_index)
         } else {
@@ -305,7 +305,7 @@ impl<T: BitInt, const N: usize> PieceRules<T, N> for PawnRules {
         }
     }
 
-    fn make_move(&self, board: &mut Board<T, N>, action: Action) {
+    pub fn make_move<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, action: Action) {
         match action.info {
             0 => make_chess_move(&mut board.state, action),
             1 => make_en_passant_move(&mut board.state, action),
@@ -313,7 +313,7 @@ impl<T: BitInt, const N: usize> PieceRules<T, N> for PawnRules {
         }
     }
 
-    fn display_action(&self, board: &mut Board<T, N>, action: Action) -> Vec<String> {
+    pub fn display_action<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, action: Action) -> Vec<String> {
         let promotion_piece_type = if action.info > 1 {
             // TODO! board.game.pieces[(action.info - 2) as usize].symbol.to_lowercase()
             "".to_string()
