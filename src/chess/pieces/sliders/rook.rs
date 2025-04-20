@@ -85,7 +85,3 @@ impl<T: BitInt, const N: usize> PieceRules<T, N> for RookRules {
         make_chess_move(&mut board.state, action)
     }
 }
-
-pub fn create_rook<T: BitInt, const N: usize>() -> Piece<T, N> {
-    Piece::new("r", "rook", Box::new(RookRules))
-}

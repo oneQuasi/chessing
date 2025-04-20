@@ -58,7 +58,3 @@ impl<T: BitInt, const N: usize> PieceRules<T, N> for KnightRules {
         make_chess_move(&mut board.state, action)
     }
 }
-
-pub fn create_knight<T: BitInt, const N: usize>() -> Piece<T, N> {
-    Piece::new("n", "knight", Box::new(KnightRules))
-}

@@ -86,9 +86,4 @@ impl<T: BitInt, const N: usize> PieceRules<T, N> for BishopRules {
     fn make_move(&self, board: &mut Board<T, N>, action: Action) {
         make_chess_move(&mut board.state, action)
     }
-
-}
-
-pub fn create_bishop<T: BitInt, const N: usize>() -> Piece<T, N> {
-    Piece::new("b", "bishop", Box::new(BishopRules))
 }

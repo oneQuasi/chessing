@@ -323,9 +323,4 @@ impl<T: BitInt, const N: usize> PieceRules<T, N> for PawnRules {
             format!("{}{}{}", index_to_square(action.from), index_to_square(action.to), promotion_piece_type)
         ]
     }
-
-}
-
-pub fn create_pawn<T: BitInt, const N: usize>() -> Piece<T, N> {
-    Piece::new("p", "pawn", Box::new(PawnRules))
 }

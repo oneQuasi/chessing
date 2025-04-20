@@ -2,7 +2,7 @@
 
 use rustc_hash::FxHashMap as HashMap;
 
-use pieces::{king::{create_king, KingRules}, knight::{create_knight, KnightRules}, pawn::{self, create_pawn, PawnRules}, sliders::{bishop::{create_bishop, BishopRules}, queen::{create_queen, QueenRules}, rook::{create_rook, RookRules}}};
+use pieces::{king::KingRules, knight::KnightRules, pawn::PawnRules, sliders::{bishop::BishopRules, queen::QueenRules, rook::RookRules}};
 
 use crate::{bitboard::{BitBoard, BitInt, Bounds}, game::{action::{index_to_square, square_to_index, Action, ActionRecord}, piece::PieceRules, zobrist::ZobristTable, Board, Game, GameRules, GameState, GameTemplate, Team}};
 
@@ -83,7 +83,7 @@ pub struct ChessProcessor;
 
 impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
     fn list_actions(&self, board: &mut Board<T, N>) -> Vec<Action> {
-        let mut actions = Vec::with_capacity(40); // Pre-allocate as you did
+        let mut actions = Vec::with_capacity(100); // Pre-allocate as you did
 
         actions.extend(PawnRules.list_actions(board, 0));
         actions.extend(KnightRules.list_actions(board, 1));
@@ -413,20 +413,12 @@ impl GameTemplate for Chess {
             ],
         };
 
-        let pieces = vec![
-            create_pawn(),
-            create_knight(),
-            create_bishop(),
-            create_rook(),
-            create_queen(),
-            create_king()
-        ];
-
-        let mut index = 0;
-        for piece in pieces {
-            piece.rules.process(&mut game, index);
-            index += 1;
-        }
+        PawnRules.process(&mut game, 0);
+        KnightRules.process(&mut game, 1);
+        BishopRules.process(&mut game, 2);
+        RookRules.process(&mut game, 3);
+        QueenRules.process(&mut game, 4);
+        KingRules.process(&mut game, 5);
 
         game
     }

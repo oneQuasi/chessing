@@ -145,7 +145,3 @@ impl<T: BitInt, const N: usize> PieceRules<T, N> for KingRules {
         }
     }
 }
-
-pub fn create_king<T: BitInt, const N: usize>() -> Piece<T, N> {
-    Piece::new("k", "king", Box::new(KingRules))
-}
