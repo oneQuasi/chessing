@@ -290,29 +290,16 @@ impl Pawn {
     }
 
     pub fn actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
-        if board.state.moving_team == Team::White {
-            list_white_pawn_actions(board, piece_index)
-        } else {
-            list_black_pawn_actions(board, piece_index)
+        match board.state.moving_team {
+            Team::White => list_white_pawn_actions(board, piece_index),
+            Team::Black => list_black_pawn_actions(board, piece_index)
         }
     }
 
     pub fn attacks<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, _: BitBoard<T>) -> BitBoard<T> {
-        if board.state.moving_team == Team::White {
-            list_white_pawn_captures(board, piece_index)
-        } else {
-            list_black_pawn_captures(board, piece_index)
+        match board.state.moving_team {
+            Team::White => list_white_pawn_captures(board, piece_index),
+            Team::Black => list_black_pawn_captures(board, piece_index)
         }
-    }
-
-    pub fn display_action<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, action: Action) -> Vec<String> {
-        let promotion_piece_type = if action.info > 1 {
-            // TODO! board.game.pieces[(action.info - 2) as usize].symbol.to_lowercase()
-            "".to_string()
-        } else { "".to_string() };
-
-        vec![
-            format!("{}{}{}", index_to_square(action.from), index_to_square(action.to), promotion_piece_type)
-        ]
     }
 }

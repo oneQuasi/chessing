@@ -71,6 +71,8 @@ pub trait GameRules<T : BitInt, const N: usize> {
     fn attacks(&self, board: &mut Board<T, N>, mask: BitBoard<T>) -> BitBoard<T>;
     fn play(&self, board: &mut Board<T, N>, act: Action);
 
+    fn display_action(&self, board: &mut Board<T, N>, act: Action) -> Vec<String>;
+
     fn is_legal(&self, board: &mut Board<T, N>) -> bool;
     fn game_state(&self, board: &mut Board<T, N>, legal_actions: &[Action]) -> GameState;
     fn gen_zobrist(&self, board: &mut Board<T, N>, seed: u64) -> ZobristTable;
@@ -233,15 +235,11 @@ impl<'a, T : BitInt, const N: usize> Board<'a, T, N> {
     }
 
     pub fn display_action(&mut self, action: Action) -> Vec<String> {
-        let piece_index = self.piece_at(action.from).expect("Found displayed piece");
-        vec![]
-        //TODO! self.game.pieces[piece_index as usize].rules.display_action(self, action)
+        self.game.rules.display_action(self, action)
     }
 
     pub fn display_uci_action(&mut self, action: Action) -> String {
-        let piece_index = self.piece_at(action.from).expect("Found displayed piece");
-        "".to_string()
-        //TODO! self.game.pieces[piece_index as usize].rules.display_uci_action(self, action)
+        self.display_action(action)[0].clone()
     }
 
     pub fn find_action(&mut self, action: &str) -> Action {

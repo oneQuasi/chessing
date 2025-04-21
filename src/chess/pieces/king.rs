@@ -19,11 +19,14 @@ pub fn make_castling_move<T: BitInt, const N: usize>(state: &mut BoardState<T, N
 
     state.pieces[piece_index as usize] = state.pieces[piece_index as usize].xor(king).or(king_relocated);
     state.pieces[rook_ind as usize] = state.pieces[rook_ind as usize].xor(rook).or(rook_relocated);
-    
-    if state.moving_team == Team::White {
-        state.white = state.white.xor(king).xor(rook).or(king_relocated).or(rook_relocated);
-    } else {
-        state.black = state.black.xor(king).xor(rook).or(king_relocated).or(rook_relocated);
+
+    match state.moving_team {
+        Team::White => {
+            state.white = state.white.xor(king).xor(rook).or(king_relocated).or(rook_relocated);
+        }
+        Team::Black => {
+            state.black = state.black.xor(king).xor(rook).or(king_relocated).or(rook_relocated)
+        }
     }
 }
 
@@ -106,36 +109,5 @@ impl King {
         }
     
         actions
-    }
-
-    pub fn display_action<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, action: Action) -> Vec<String> {
-        let display = format!("{}{}", index_to_square(action.from), index_to_square(action.to));
-        if BitBoard::index(action.to).and(board.state.team_to_move()).set() {
-            let king_dest = if action.to > action.from { action.from + 2 } else { action.from - 2 };
-            let alternate_display = format!("{}{}", index_to_square(action.from), index_to_square(king_dest));
-
-            // King cannot move two tiles left or right, meaning this must be a castling move
-            vec![
-                display,
-                alternate_display
-            ]
-        } else {
-            vec![
-                display
-            ]
-        }
-    }
-
-    pub fn display_uci_action<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, action: Action) -> String {
-        if BitBoard::index(action.to).and(board.state.team_to_move()).set() {
-            let king_dest = if action.to > action.from { action.from + 2 } else { action.from - 2 };
-            let alternate_display = format!("{}{}", index_to_square(action.from), index_to_square(king_dest));
-
-            // King cannot move two tiles left or right, meaning this must be a castling move
-            alternate_display
-        } else {
-            let display = format!("{}{}", index_to_square(action.from), index_to_square(action.to));
-            display
-        }
     }
 }

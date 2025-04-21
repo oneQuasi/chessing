@@ -83,7 +83,7 @@ pub struct ChessProcessor;
 
 impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
     fn actions(&self, board: &mut Board<T, N>) -> Vec<Action> {
-        let mut actions = Vec::with_capacity(100); // Pre-allocate as you did
+        let mut actions = Vec::with_capacity(100);
 
         actions.extend(Pawn.actions(board, 0));
         actions.extend(Knight.actions(board, 1));
@@ -130,7 +130,7 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
     }
 
     fn play(&self, board: &mut Board<T, N>, act: Action) {
-        let piece_index = board.piece_at(act.from).expect("Found piece making move");
+        let piece_index = board.piece_at(act.from).expect("Couldn't find piece making move");
 
         match piece_index {
             PAWN => match act.info {
@@ -157,6 +157,48 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
         vec![
             'p', 'n', 'b', 'r', 'q', 'k'
         ]
+    }
+
+    // TODO: Pawn promotions & castling handling for displays
+
+    fn display_action(&self, board: &mut Board<T, N>, act: Action) -> Vec<String> {
+        let piece_index = board.piece_at(act.from).expect("Found piece making move");
+
+        match piece_index {
+            PAWN => match act.info {
+                0 | 1 => {
+                    vec![
+                        format!("{}{}", index_to_square(act.from), index_to_square(act.to))
+                    ]
+                },
+                _ => {
+                    let promotion = (act.info - 2) as usize;
+                    let piece_map = board.game.rules.piece_map();
+                    vec![
+                        format!("{}{}{}", index_to_square(act.from), index_to_square(act.to), piece_map[promotion])
+                    ]
+                }
+            },
+            KING => match act.info {
+                0 => {
+                    vec![
+                        format!("{}{}", index_to_square(act.from), index_to_square(act.to))
+                    ]
+                },
+                _ => {
+                    let king_dest = if act.to > act.from { act.from + 2 } else { act.from - 2 };
+                    vec![
+                        format!("{}{}", index_to_square(act.from), index_to_square(king_dest)),
+                        format!("{}{}", index_to_square(act.from), index_to_square(act.to))
+                    ]
+                }
+            },
+            _ => {
+                vec![
+                    format!("{}{}", index_to_square(act.from), index_to_square(act.to))
+                ]
+            }
+        }
     }
 
     fn load(&self, board: &mut Board<T, N>, pos: &str) {
