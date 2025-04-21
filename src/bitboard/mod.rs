@@ -100,6 +100,34 @@ impl<T: BitInt> BitBoard<T> {
         BitBoard(self.0 >> (8 * tiles))
     }
 
+    pub fn try_right(mut self, edges: &Edges<T>, tiles: usize) -> BitBoard<T> {
+        for _ in 0..tiles {
+            self = self.and_not(edges.right).right(1);
+        }
+        self
+    }
+    
+    pub fn try_left(mut self, edges: &Edges<T>, tiles: usize) -> BitBoard<T> {
+        for _ in 0..tiles {
+            self = self.and_not(edges.left).left(1);
+        }
+        self
+    }
+    
+    pub fn try_up(mut self, edges: &Edges<T>, tiles: usize) -> BitBoard<T> {
+        for _ in 0..tiles {
+            self = self.and_not(edges.top).up(1);
+        }
+        self
+    }
+    
+    pub fn try_down(mut self, edges: &Edges<T>, tiles: usize) -> BitBoard<T> {
+        for _ in 0..tiles {
+            self = self.and_not(edges.bottom).down(1);
+        }
+        self
+    }
+
     pub fn display(self, bounds: Bounds) {
         let Bounds { rows, cols } = bounds;
         let total_bits = T::zero().count_zeros(); // We’ll use this to cap max size

@@ -12,16 +12,16 @@ impl Knight {
         for index in 0..64 {
             let knight = BitBoard::index(index);
 
-            let two_right = knight.and_not(deep_edges.right).right(2);
-            let two_left = knight.and_not(deep_edges.left).left(2);
-            let two_up = knight.and_not(deep_edges.top).up(2);
-            let two_down = knight.and_not(deep_edges.bottom).down(2);
+            let two_right = knight.try_right(&edges, 2);
+            let two_left = knight.try_left(&edges, 2);
+            let two_up = knight.try_up(&edges, 2);
+            let two_down = knight.try_down(&edges, 2);
         
             let horizontal = two_right.or(two_left);
             let vertical = two_up.or(two_down);
         
-            let horizontal_moves = horizontal.and_not(edges.top).up(1).or(horizontal.and_not(edges.bottom).down(1));
-            let vertical_moves = vertical.and_not(edges.right).right(1).or(vertical.and_not(edges.left).left(1));
+            let horizontal_moves = horizontal.try_up(&edges, 1).or(horizontal.try_down(&edges, 1));
+            let vertical_moves = vertical.try_right(&edges, 1).or(vertical.try_left(&edges, 1));
 
             let moves = horizontal_moves.or(vertical_moves);
             game.lookup[piece_index][0].push(moves);

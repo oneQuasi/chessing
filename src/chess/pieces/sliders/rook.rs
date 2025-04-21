@@ -19,10 +19,10 @@ impl Rook {
         for index in 0..64 {
             let rook = BitBoard::index(index);
 
-            let up_ray = repeat(rook, |pos| pos.and_not(edges.top).up(1));
-            let down_ray = repeat(rook, |pos| pos.and_not(edges.bottom).down(1));
-            let left_ray = repeat(rook, |pos| pos.and_not(edges.left).left(1));
-            let right_ray = repeat(rook, |pos| pos.and_not(edges.right).right(1));
+            let up_ray = repeat(rook, |pos| pos.try_up(&edges, 1));
+            let down_ray = repeat(rook, |pos| pos.try_down(&edges, 1));
+            let left_ray = repeat(rook, |pos| pos.try_left(&edges, 1));
+            let right_ray = repeat(rook, |pos| pos.try_right(&edges, 1));
 
             let all = up_ray.or(down_ray).or(left_ray).or(right_ray);
 

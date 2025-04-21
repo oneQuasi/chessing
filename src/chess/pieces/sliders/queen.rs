@@ -25,15 +25,15 @@ impl Queen {
         for index in 0..64 {
             let queen = BitBoard::index(index);
             
-            let up_ray = repeat(queen, |pos| pos.and_not(edges.top).up(1));
-            let down_ray = repeat(queen, |pos| pos.and_not(edges.bottom).down(1));
-            let left_ray = repeat(queen, |pos| pos.and_not(edges.left).left(1));
-            let right_ray = repeat(queen, |pos| pos.and_not(edges.right).right(1));
+            let up_ray = repeat(queen, |pos| pos.try_up(&edges, 1));
+            let down_ray = repeat(queen, |pos| pos.try_down(&edges, 1));
+            let left_ray = repeat(queen, |pos| pos.try_left(&edges, 1));
+            let right_ray = repeat(queen, |pos| pos.try_right(&edges, 1));
 
-            let up_right_ray = repeat(queen, |pos| pos.and_not(edges.top).and_not(edges.right).up(1).right(1));
-            let up_left_ray = repeat(queen, |pos| pos.and_not(edges.top).and_not(edges.left).up(1).left(1));
-            let down_right_ray = repeat(queen, |pos| pos.and_not(edges.bottom).and_not(edges.right).down(1).right(1));
-            let down_left_ray = repeat(queen, |pos| pos.and_not(edges.bottom).and_not(edges.left).down(1).left(1));
+            let up_right_ray = repeat(queen, |pos| pos.try_up(&edges, 1).try_right(&edges, 1));
+            let up_left_ray = repeat(queen, |pos| pos.try_up(&edges, 1).try_left(&edges, 1));
+            let down_right_ray = repeat(queen, |pos| pos.try_down(&edges, 1).try_right(&edges, 1));
+            let down_left_ray = repeat(queen, |pos| pos.try_down(&edges, 1).try_left(&edges, 1));
             
             game.lookup[piece_index][UP].push(up_ray);
             game.lookup[piece_index][DOWN].push(down_ray);

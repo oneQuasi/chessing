@@ -6,8 +6,8 @@ fn list_white_pawn_captures<T: BitInt, const N: usize>(board: &mut Board<T, N>, 
     let edges = board.game.edges[0];
 
     let up_once = pawns.and(board.state.white).up(1);
-    let left_captures = up_once.and_not(edges.left).left(1);
-    let right_captures = up_once.and_not(edges.right).right(1);
+    let left_captures = up_once.try_left(&edges, 1);
+    let right_captures = up_once.try_right(&edges, 1);
 
     left_captures.or(right_captures)
 }
@@ -18,8 +18,8 @@ fn list_black_pawn_captures<T: BitInt, const N: usize>(board: &mut Board<T, N>, 
     let edges = board.game.edges[0];
 
     let down_once = pawns.and(board.state.black).down(1);
-    let left_captures = down_once.and_not(edges.left).left(1);
-    let right_captures = down_once.and_not(edges.right).right(1);
+    let left_captures = down_once.try_left(&edges, 1);
+    let right_captures = down_once.try_right(&edges, 1);
 
     left_captures.or(right_captures)
 }
@@ -67,8 +67,8 @@ fn list_white_pawn_actions<T: BitInt, const N: usize>(board: &mut Board<T, N>, p
 
     let up_once = white_pawns.up(1);
 
-    let possible_left_captures = up_once.and_not(edges.left).left(1);
-    let possible_right_captures = up_once.and_not(edges.right).right(1);
+    let possible_left_captures = up_once.try_left(&edges, 1);
+    let possible_right_captures = up_once.try_right(&edges, 1);
 
     let left_captures = possible_left_captures.and(black);
     let right_captures = possible_right_captures.and(black);
@@ -137,8 +137,8 @@ fn list_black_pawn_actions<T: BitInt, const N: usize>(board: &mut Board<T, N>, p
 
     let down_once = black_pawns.down(1);
 
-    let possible_left_captures = down_once.and_not(edges.left).left(1);
-    let possible_right_captures = down_once.and_not(edges.right).right(1);
+    let possible_left_captures = down_once.try_left(&edges, 1);
+    let possible_right_captures = down_once.try_right(&edges, 1);
 
     let left_captures = possible_left_captures.and(white);
     let right_captures = possible_right_captures.and(white);

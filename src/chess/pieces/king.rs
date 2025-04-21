@@ -40,13 +40,13 @@ impl King {
         for index in 0..64 {
             let king = BitBoard::index(index);
 
-            let up = king.and_not(edges.top).up(1);
-            let down = king.and_not(edges.bottom).down(1);
+            let up = king.try_up(&edges, 1);
+            let down = king.try_down(&edges, 1);
         
             let vertical = king.or(up).or(down);
         
-            let right = vertical.and_not(edges.right).right(1);
-            let left = vertical.and_not(edges.left).left(1);
+            let right = vertical.try_right(&edges, 1);
+            let left = vertical.try_left(&edges, 1);
         
             let moves = vertical.or(right).or(left).and_not(king);
             game.lookup[piece_index][0].push(moves);
