@@ -2,7 +2,7 @@
 
 use rustc_hash::FxHashMap as HashMap;
 
-use pieces::{king::{make_castling_move, King}, knight::Knight, pawn::{make_en_passant_move, make_promotion_move, Pawn}, sliders::{bishop::BishopMoves, queen::QueenMoves, rook::RookMoves, slider::Slider}};
+use pieces::{leapers::{king::{make_castling_move, King}, knight::KnightMoves, leaper::Leaper}, pawn::{make_en_passant_move, make_promotion_move, Pawn}, sliders::{bishop::BishopMoves, queen::QueenMoves, rook::RookMoves, slider::Slider}};
 
 use crate::{bitboard::{BitBoard, BitInt, Bounds}, game::{action::{index_to_square, make_chess_move, square_to_index, Action, ActionRecord}, zobrist::ZobristTable, Board, Game, GameRules, GameState, GameTemplate, Team}};
 
@@ -86,7 +86,7 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
         let mut actions = Vec::with_capacity(100);
 
         actions.extend(Pawn.actions(board, 0));
-        actions.extend(Knight.actions(board, 1));
+        actions.extend(Leaper(KnightMoves).actions(board, 1));
         actions.extend(Slider(BishopMoves).actions(board, 2));
         actions.extend(Slider(RookMoves).actions(board, 3));
         actions.extend(Slider(QueenMoves).actions(board, 4));
@@ -101,7 +101,7 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
             return pawn;
         }
 
-        let knight = Knight.attacks(board, 1, mask);
+        let knight = Leaper(KnightMoves).attacks(board, 1, mask);
         if knight.and(mask).set() {
             return knight;
         }
@@ -465,7 +465,7 @@ impl GameTemplate for Chess {
             ],
         };
 
-        Knight.process(&mut game, 1);
+        Leaper(KnightMoves).process(&mut game, 1);
         Slider(BishopMoves).process(&mut game, 2);
         Slider(RookMoves).process(&mut game, 3);
         Slider(QueenMoves).process(&mut game, 4);
