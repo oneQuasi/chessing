@@ -19,16 +19,16 @@ impl<S : LeaperMoves> Leaper<S> {
         }
     }
     
-    pub fn attacks<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, mask: BitBoard<T>) -> BitBoard<T> {
+    pub fn attacks<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, mask: BitBoard<T>) -> bool {
         let moving_team = board.state.team_to_move();
         for leaper in board.state.pieces[piece_index].and(moving_team).iter() {
             let attacks = board.game.lookup[piece_index][0][leaper as usize];
             if attacks.and(mask).set() {
-                return mask;
+                return true;
             }
         }
         
-        BitBoard::default()
+        false
     }
 
 

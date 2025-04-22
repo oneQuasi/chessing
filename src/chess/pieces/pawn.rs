@@ -296,10 +296,10 @@ impl Pawn {
         }
     }
 
-    pub fn attacks<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, _: BitBoard<T>) -> BitBoard<T> {
+    pub fn attacks<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, mask: BitBoard<T>) -> bool {
         match board.state.moving_team {
-            Team::White => list_white_pawn_captures(board, piece_index),
-            Team::Black => list_black_pawn_captures(board, piece_index)
+            Team::White => list_white_pawn_captures(board, piece_index).and(mask).set(),
+            Team::Black => list_black_pawn_captures(board, piece_index).and(mask).set()
         }
     }
 }

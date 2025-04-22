@@ -33,7 +33,7 @@ impl <S : SliderMoves> Slider<S> {
         }
     }
 
-    pub fn attacks<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, mask: BitBoard<T>) -> BitBoard<T> {
+    pub fn attacks<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, mask: BitBoard<T>) -> bool {
         let moving_team = board.state.team_to_move();
 
         for slider in board.state.pieces[piece_index].and(moving_team).iter() {
@@ -52,11 +52,11 @@ impl <S : SliderMoves> Slider<S> {
                 }
 
                 let ray = ray_attacks(board, pos, piece_index, dir, ray);
-                if ray.and(mask).set() { return ray; }
+                if ray.and(mask).set() { return true; }
             }
         }
 
-        BitBoard::default()
+        false
     }
 
     pub fn actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {

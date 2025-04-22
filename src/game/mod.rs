@@ -68,7 +68,7 @@ pub trait GameRules<T : BitInt, const N: usize> {
     fn piece_map(&self) -> Vec<char>;
 
     fn actions(&self, board: &mut Board<T, N>) -> Vec<Action>;
-    fn attacks(&self, board: &mut Board<T, N>, mask: BitBoard<T>) -> BitBoard<T>;
+    fn attacks(&self, board: &mut Board<T, N>, mask: BitBoard<T>) -> bool;
     fn play(&self, board: &mut Board<T, N>, act: Action);
 
     fn display_action(&self, board: &mut Board<T, N>, act: Action) -> Vec<String>;
@@ -222,7 +222,7 @@ impl<'a, T : BitInt, const N: usize> Board<'a, T, N> {
         legals
     }
 
-    pub fn attacks(&mut self, mask: BitBoard<T>) -> BitBoard<T> {
+    pub fn attacks(&mut self, mask: BitBoard<T>) -> bool {
         self.game.rules.attacks(self, mask)
     }
 

@@ -53,12 +53,12 @@ pub fn castling_actions<T: BitInt, const N: usize>(board: &mut Board<T, N>, piec
 
             // We'll need the capture mask of the opp team
             board.state.moving_team = board.state.moving_team.next();
-            let mask = board.attacks(between_dest_squares);
+            let attacks = board.attacks(between_dest_squares);
             board.state.moving_team = board.state.moving_team.next();
 
 
             // We can't castle through check or while in check, so we'll have to check if that's the case.
-            if between_dest_squares.or(BitBoard::index(pos)).and(mask).set() {
+            if attacks {
                 continue;
             }
 

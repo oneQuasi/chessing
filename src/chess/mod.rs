@@ -96,39 +96,14 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
         actions
     }
     
-    fn attacks(&self, board: &mut Board<T, N>, mask: BitBoard<T>) -> BitBoard<T> {
-        let pawn = Pawn.attacks(board, 0, mask);
-        if pawn.and(mask).set() {
-            return pawn;
-        }
-
-        let knight = Leaper(KnightMoves).attacks(board, 1, mask);
-        if knight.and(mask).set() {
-            return knight;
-        }
-        
-        let king = Leaper(KingMoves).attacks(board, 5, mask);
-        if king.and(mask).set() {
-            return king;
-        }
-
-        let bishop = Slider(BishopMoves).attacks(board, 2, mask);
-        if bishop.and(mask).set() {
-            return bishop;
-        }
-
-        let rook = Slider(RookMoves).attacks(board, 3, mask);
-        if rook.and(mask).set() {
-            return rook;
-        }
-
-        let queen = Slider(QueenMoves).attacks(board, 4, mask);
-        if queen.and(mask).set() {
-            return queen;
-        }
-
-        BitBoard::default()
-    }
+    fn attacks(&self, board: &mut Board<T, N>, mask: BitBoard<T>) -> bool {
+        Pawn.attacks(board, 0, mask) ||
+        Leaper(KnightMoves).attacks(board, 1, mask) ||
+        Leaper(KingMoves).attacks(board, 5, mask) ||
+        Slider(BishopMoves).attacks(board, 2, mask) ||
+        Slider(RookMoves).attacks(board, 3, mask) ||
+        Slider(QueenMoves).attacks(board, 4, mask)
+    }    
 
     fn play(&self, board: &mut Board<T, N>, act: Action) {
         let piece_index = board.piece_at(act.from).expect("Couldn't find piece making move");
@@ -149,9 +124,7 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
 
     fn is_legal(&self, board: &mut Board<T, N>) -> bool {
         let king = board.state.pieces[KING].and(board.state.opposite_team());
-        let mask = board.attacks(king);
-
-        mask.and(king).empty()
+        !board.attacks(king)
     }
 
     fn piece_map(&self) -> Vec<char> {
@@ -365,7 +338,7 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
             let captures = board.attacks(king);
             board.state.moving_team = board.state.moving_team.next();
 
-            if captures.and(king).set() {
+            if captures {
                 GameState::Win(board.state.moving_team.next())
             } else {
                 GameState::Draw
