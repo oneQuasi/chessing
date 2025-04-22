@@ -2,7 +2,7 @@
 
 use rustc_hash::FxHashMap as HashMap;
 
-use pieces::{king::{make_castling_move, King}, knight::Knight, pawn::{make_en_passant_move, make_promotion_move, Pawn}, sliders::{bishop::Bishop, queen::Queen, rook::Rook}};
+use pieces::{king::{make_castling_move, King}, knight::Knight, pawn::{make_en_passant_move, make_promotion_move, Pawn}, sliders::{bishop::BishopMoves, queen::QueenMoves, rook::RookMoves, slider::Slider}};
 
 use crate::{bitboard::{BitBoard, BitInt, Bounds}, game::{action::{index_to_square, make_chess_move, square_to_index, Action, ActionRecord}, zobrist::ZobristTable, Board, Game, GameRules, GameState, GameTemplate, Team}};
 
@@ -87,9 +87,9 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
 
         actions.extend(Pawn.actions(board, 0));
         actions.extend(Knight.actions(board, 1));
-        actions.extend(Bishop.actions(board, 2));
-        actions.extend(Rook.actions(board, 3));
-        actions.extend(Queen.actions(board, 4));
+        actions.extend(Slider(BishopMoves).actions(board, 2));
+        actions.extend(Slider(RookMoves).actions(board, 3));
+        actions.extend(Slider(QueenMoves).actions(board, 4));
         actions.extend(King.actions(board, 5));
 
         actions
@@ -111,17 +111,17 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
             return king;
         }
 
-        let bishop = Bishop.attacks(board, 2, mask);
+        let bishop = Slider(BishopMoves).attacks(board, 2, mask);
         if bishop.and(mask).set() {
             return bishop;
         }
 
-        let rook = Rook.attacks(board, 3, mask);
+        let rook = Slider(RookMoves).attacks(board, 3, mask);
         if rook.and(mask).set() {
             return rook;
         }
 
-        let queen = Queen.attacks(board, 4, mask);
+        let queen = Slider(QueenMoves).attacks(board, 4, mask);
         if queen.and(mask).set() {
             return queen;
         }
@@ -466,9 +466,9 @@ impl GameTemplate for Chess {
         };
 
         Knight.process(&mut game, 1);
-        Bishop.process(&mut game, 2);
-        Rook.process(&mut game, 3);
-        Queen.process(&mut game, 4);
+        Slider(BishopMoves).process(&mut game, 2);
+        Slider(RookMoves).process(&mut game, 3);
+        Slider(QueenMoves).process(&mut game, 4);
         King.process(&mut game, 5);
 
         game
