@@ -1,4 +1,6 @@
-use crate::{bitboard::{BitBoard, BitInt}, chess::ROOK, game::{action::{index_to_square, make_chess_move, Action}, Board, BoardState, Game, Team}};
+use crate::{bitboard::{BitBoard, BitInt, Edges}, chess::ROOK, game::{action::{index_to_square, make_chess_move, Action}, Board, BoardState, Game, Team}};
+
+use super::leaper::LeaperMoves;
 
 pub fn make_castling_move<T: BitInt, const N: usize>(state: &mut BoardState<T, N>, action: Action) {
     let piece_index = action.piece as usize;
@@ -30,84 +32,57 @@ pub fn make_castling_move<T: BitInt, const N: usize>(state: &mut BoardState<T, N
     }
 }
 
-pub struct King;
+pub fn castling_actions<T: BitInt, const N: usize>(board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
+    let moving_team = board.state.team_to_move();
+    let mut castles: Vec<Action> = Vec::with_capacity(2);
+    let piece = piece_index as u8;
 
-impl King {
-    pub fn process<T: BitInt, const N: usize>(&self, game: &mut Game<T, N>, piece_index: usize) {
-        let edges = game.edges[0];
-        game.lookup[piece_index] = vec![ vec![ ] ];
+    for king in board.state.pieces[piece_index].and(moving_team).and(board.state.first_move).iter() {
+        let pos = king as u16;
 
-        for index in 0..64 {
-            let king = BitBoard::index(index);
+        for rook in board.state.pieces[ROOK].and(moving_team).and(board.state.first_move).iter() {
+            let between_squares = BitBoard::between(king as usize, rook as usize);
+            
+            // Can't castle if other pieces are in the way.
+            if between_squares.and(board.state.black.or(board.state.white)).set() {
+                continue;
+            }
+            
+            let king_dest = if rook > king { king + 2 } else { king - 2 };
+            let between_dest_squares = BitBoard::between_inclusive(king as usize, king_dest as usize);
 
-            let up = king.try_up(&edges, 1);
-            let down = king.try_down(&edges, 1);
-        
-            let vertical = king.or(up).or(down);
-        
-            let right = vertical.try_right(&edges, 1);
-            let left = vertical.try_left(&edges, 1);
-        
-            let moves = vertical.or(right).or(left).and_not(king);
-            game.lookup[piece_index][0].push(moves);
+            // We'll need the capture mask of the opp team
+            board.state.moving_team = board.state.moving_team.next();
+            let mask = board.attacks(between_dest_squares);
+            board.state.moving_team = board.state.moving_team.next();
+
+
+            // We can't castle through check or while in check, so we'll have to check if that's the case.
+            if between_dest_squares.or(BitBoard::index(pos)).and(mask).set() {
+                continue;
+            }
+
+            // We can castle! This move is represented as king goes to where the rook is.
+            castles.push(Action::from(pos, rook as u16, piece).with_info(1));
         }
     }
 
-    pub fn attacks<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, mask: BitBoard<T>) -> BitBoard<T> {
-        let moving_team = board.state.team_to_move();
-        for king in board.state.pieces[piece_index].and(moving_team).iter() {
-            let attacks = board.game.lookup[piece_index][0][king as usize];
-            if attacks.and(mask).set() {
-                return mask;
-            }
-        }
-        BitBoard::default()
-    }
+    castles
+}
 
-    pub fn actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
-        let moving_team = board.state.team_to_move();
-        let mut actions: Vec<Action> = Vec::with_capacity(8);
-        let piece = piece_index as u8;
+pub struct KingMoves;
 
-        for king in board.state.pieces[piece_index].and(moving_team).iter() {
-            let pos = king as u16;
-            let moves = board.game.lookup[piece_index][0][king as usize].and_not(moving_team);
-            for movement in moves.iter() {
-                actions.push(Action::from(pos, movement as u16, piece))
-            }
-
-            // Castling: Rook is required
-
-            let king_in_place = board.state.first_move.and(BitBoard::index(pos)).set();
-            if !king_in_place { continue; }
-
-            for rook in board.state.pieces[ROOK].and(moving_team).and(board.state.first_move).iter() {
-                let between_squares = BitBoard::between(king as usize, rook as usize);
-                
-                // Can't castle if other pieces are in the way.
-                if between_squares.and(board.state.black.or(board.state.white)).set() {
-                    continue;
-                }
-                
-                let king_dest = if rook > king { king + 2 } else { king - 2 };
-                let between_dest_squares = BitBoard::between_inclusive(king as usize, king_dest as usize);
-
-                // We'll need the capture mask of the opp team
-                board.state.moving_team = board.state.moving_team.next();
-                let mask = board.attacks(between_dest_squares);
-                board.state.moving_team = board.state.moving_team.next();
-
-
-                // We can't castle through check or while in check, so we'll have to check if that's the case.
-                if between_dest_squares.or(BitBoard::index(pos)).and(mask).set() {
-                    continue;
-                }
-
-                // We can castle! This move is represented as king goes to where the rook is.
-                actions.push(Action::from(pos, rook as u16, piece).with_info(1));
-            }
-        }
+impl LeaperMoves for KingMoves {
+    fn leaps<T: BitInt>(&self, pos: BitBoard<T>, edges: &Edges<T>) -> BitBoard<T> {
+        let up = pos.try_up(&edges, 1);
+        let down = pos.try_down(&edges, 1);
     
-        actions
+        let vertical = pos.or(up).or(down);
+    
+        let right = vertical.try_right(&edges, 1);
+        let left = vertical.try_left(&edges, 1);
+    
+        let moves = vertical.or(right).or(left).and_not(pos);
+        moves   
     }
 }
