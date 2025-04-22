@@ -46,7 +46,12 @@ impl <S : SliderMoves> Slider<S> {
             }
 
             for dir in 0..rays {
-                let ray = ray_attacks(board, pos, piece_index, dir);
+                let ray = board.game.lookup[piece_index][dir][pos];
+                if ray.and(mask).empty() {
+                    continue;
+                }
+
+                let ray = ray_attacks(board, pos, piece_index, dir, ray);
                 if ray.and(mask).set() { return ray; }
             }
         }
@@ -66,8 +71,9 @@ impl <S : SliderMoves> Slider<S> {
 
             let mut moves = BitBoard::default();
 
-            for ray in 0..rays {
-                moves = moves.or(ray_attacks(board, pos, piece_index, ray));
+            for dir in 0..rays {
+                let ray = board.game.lookup[piece_index][dir][pos];
+                moves = moves.or(ray_attacks(board, pos, piece_index, dir, ray));
             }
 
             moves = moves.and_not(moving_team);

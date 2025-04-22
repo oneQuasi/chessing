@@ -7,9 +7,7 @@ pub mod queen;
 pub mod slider;
 
 #[inline(always)]
-pub fn ray_attacks<T: BitInt, const N: usize>(board: &mut Board<T, N>, pos: usize, piece_index: usize, dir: usize) -> BitBoard<T> {
-    let ray = board.game.lookup[piece_index][dir][pos];
-
+pub fn ray_attacks<T: BitInt, const N: usize>(board: &mut Board<T, N>, pos: usize, piece_index: usize, dir: usize, ray: BitBoard<T>) -> BitBoard<T> {
     let blocker = ray.and(board.state.black.or(board.state.white));
     if blocker.set() {
         let square = if BitBoard::index(pos as u16).lt(blocker) {
