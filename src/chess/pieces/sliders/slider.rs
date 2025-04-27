@@ -9,6 +9,52 @@ pub trait SliderMoves : Copy + Clone {
 
 pub struct Slider<S : SliderMoves>(pub S);
 
+fn list_moves<T: BitInt, const N: usize>(
+    game: &Game<T, N>,
+    piece_index: usize,
+    pos: usize,
+    blockers: BitBoard<T>
+) -> BitBoard<T> {
+    let rays = game.lookup[piece_index].len() - 1;
+
+    let mut moves = BitBoard::default();
+
+    for dir in 0..rays {
+        let ray = game.lookup[piece_index][dir][pos];
+        moves = moves.or(ray_attacks(game, piece_index, pos, dir, ray, blockers));
+    }
+
+    moves
+}
+
+fn can_attack<T: BitInt, const N: usize>(
+    game: &Game<T, N>,
+    piece_index: usize,
+    pos: usize,
+    blockers: BitBoard<T>,
+    mask: BitBoard<T>
+) -> bool {
+    let rays = game.lookup[piece_index].len() - 1;
+    let all_ind = rays;
+
+    if game.lookup[piece_index][all_ind][pos].and(mask).empty() {
+        return false;
+    }
+
+    for dir in 0..rays {
+        // If this ray couldn't be attacked unblocked, break.
+        let ray = game.lookup[piece_index][dir][pos];
+        if ray.and(mask).empty() {
+            continue;
+        }
+
+        let ray = ray_attacks(game, piece_index, pos, dir, ray, blockers);
+        if ray.and(mask).set() { return true; }
+    }
+
+    false
+}
+
 impl <S : SliderMoves> Slider<S> {
     pub fn process<T: BitInt, const N: usize>(&self, game: &mut Game<T, N>, piece_index: usize) {
         let edges = game.edges[0];
@@ -34,59 +80,28 @@ impl <S : SliderMoves> Slider<S> {
     }
 
     pub fn attacks<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, mask: BitBoard<T>) -> bool {
-        let moving_team = board.state.team_to_move();
+        let team = board.state.team_to_move();
         let blockers = board.state.black.or(board.state.white);
-
-        for slider in board.state.pieces[piece_index].and(moving_team).iter() {
-            let pos = slider as usize;
-            let rays = board.game.lookup[piece_index].len() - 1;
-            let all_ind = rays;
-
-            // If `mask` doesn't fall onto any of the squares this piece could attack unblocked, break.
-            if board.game.lookup[piece_index][all_ind][pos].and(mask).empty() {
-                continue;
-            }
-
-            for dir in 0..rays {
-                // If this ray couldn't be attacked unblocked, break.
-                let ray = board.game.lookup[piece_index][dir][pos];
-                if ray.and(mask).empty() {
-                    continue;
-                }
-
-                let ray = ray_attacks(board.game, piece_index, pos, dir, ray, blockers);
-                if ray.and(mask).set() { return true; }
-            }
-        }
-
-        false
+    
+        board.state.pieces[piece_index]
+            .and(team)
+            .iter()
+            .any(|pos| can_attack(&board.game, piece_index, pos as usize, blockers, mask))
     }
 
     pub fn actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
-        let moving_team = board.state.team_to_move();
-        let mut actions: Vec<Action> = Vec::with_capacity(30);
+        let team = board.state.team_to_move();
         let blockers = board.state.black.or(board.state.white);
-
         let piece = piece_index as u8;
-        for slider in board.state.pieces[piece_index].and(moving_team).iter() {
-            let pos = slider as usize;
-            let stored_pos = slider as u16;
-            let rays = board.game.lookup[piece_index].len() - 1;
-
-            let mut moves = BitBoard::default();
-
-            for dir in 0..rays {
-                let ray = board.game.lookup[piece_index][dir][pos];
-                moves = moves.or(ray_attacks(&board.game, piece_index, pos, dir, ray, blockers));
-            }
-
-            moves = moves.and_not(moving_team);
-
-            for movement in moves.iter() {
-                actions.push(Action::from(stored_pos, movement as u16, piece))
-            }
-        }
-
-        actions
+    
+        board.state.pieces[piece_index]
+            .and(team)
+            .iter()
+            .flat_map(|pos| {
+                let from = pos as u16;
+                let moves = list_moves(&board.game, piece_index, pos as usize, blockers).and_not(team);
+                moves.iter().map(move |to| Action::from(from, to as u16, piece))
+            })
+            .collect()
     }
 }

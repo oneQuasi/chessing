@@ -8,7 +8,14 @@ pub mod slider;
 pub mod magics;
 
 #[inline(always)]
-pub fn ray_attacks<T: BitInt, const N: usize>(game: &Game<T, N>, piece_index: usize, pos: usize, dir: usize, ray: BitBoard<T>, blockers: BitBoard<T>) -> BitBoard<T> {
+pub fn ray_attacks<T: BitInt, const N: usize>(
+    game: &Game<T, N>, 
+    piece_index: usize, 
+    pos: usize, 
+    dir: usize, 
+    ray: BitBoard<T>, 
+    blockers: BitBoard<T>
+) -> BitBoard<T> {
     let blocker = ray.and(blockers);
     if blocker.set() {
         let square = if BitBoard::index(pos as u16).lt(blocker) {
