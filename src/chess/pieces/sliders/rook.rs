@@ -3,6 +3,7 @@ use crate::{bitboard::{BitBoard, BitInt, Edges}, game::{action::{make_chess_move
 
 use super::{repeat, slider::SliderMoves};
 
+#[derive(Copy, Clone)]
 pub struct RookMoves;
 
 impl SliderMoves for RookMoves {

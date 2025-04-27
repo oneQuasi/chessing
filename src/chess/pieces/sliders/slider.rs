@@ -3,7 +3,7 @@ use crate::{bitboard::{BitBoard, BitInt, Edges}, game::{action::{make_chess_move
 
 use super::{ray_attacks, repeat};
 
-pub trait SliderMoves {
+pub trait SliderMoves : Copy + Clone {
     fn rays<T: BitInt>(&self, pos: BitBoard<T>, edges: &Edges<T>)  -> Vec<BitBoard<T>>;
 }
 
@@ -41,11 +41,13 @@ impl <S : SliderMoves> Slider<S> {
             let rays = board.game.lookup[piece_index].len() - 1;
             let all_ind = rays;
 
+            // If `mask` doesn't fall onto any of the squares this piece could attack unblocked, break.
             if board.game.lookup[piece_index][all_ind][pos].and(mask).empty() {
                 continue;
             }
 
             for dir in 0..rays {
+                // If this ray couldn't be attacked unblocked, break.
                 let ray = board.game.lookup[piece_index][dir][pos];
                 if ray.and(mask).empty() {
                     continue;

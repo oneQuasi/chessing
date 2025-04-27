@@ -5,6 +5,7 @@ pub mod bishop;
 pub mod rook;
 pub mod queen;
 pub mod slider;
+pub mod magics;
 
 #[inline(always)]
 pub fn ray_attacks<T: BitInt, const N: usize>(board: &mut Board<T, N>, pos: usize, piece_index: usize, dir: usize, ray: BitBoard<T>) -> BitBoard<T> {

@@ -2,7 +2,7 @@
 
 use rustc_hash::FxHashMap as HashMap;
 
-use pieces::{leapers::{king::{castling_actions, make_castling_move, KingMoves}, knight::KnightMoves, leaper::Leaper}, pawn::{make_en_passant_move, make_promotion_move, Pawn}, sliders::{bishop::BishopMoves, queen::QueenMoves, rook::RookMoves, slider::Slider}};
+use pieces::{leapers::{king::{castling_actions, make_castling_move, KingMoves}, knight::KnightMoves, leaper::Leaper}, pawn::{make_en_passant_move, make_promotion_move, Pawn}, sliders::{bishop::BishopMoves, magics::Magic, queen::QueenMoves, rook::RookMoves, slider::Slider}};
 
 use crate::{bitboard::{BitBoard, BitInt, Bounds}, game::{action::{index_to_square, make_chess_move, square_to_index, Action, ActionRecord}, zobrist::ZobristTable, Board, Game, GameRules, GameState, GameTemplate, Team}};
 
@@ -437,6 +437,7 @@ impl GameTemplate for Chess {
                 BitBoard::edges(bounds, 1),
                 BitBoard::edges(bounds, 2)
             ],
+            magics: vec![ vec![]; 6 ]
         };
 
         Leaper(KnightMoves).process(&mut game, 1);

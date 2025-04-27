@@ -231,6 +231,14 @@ impl<T: BitInt> BitBoard<T> {
         BitBoard(T::zero())
     }
 
+    pub fn combine(boards: &[BitBoard<T>]) -> BitBoard<T> {
+        let mut out = BitBoard::default();
+        for &board in boards {
+            out = out.or(board);
+        }
+        out
+    }
+
     pub fn index(index: u16) -> BitBoard<T> {
         BitBoard(T::one() << index.into())
     }

@@ -13,24 +13,34 @@ pub mod perft;
 pub mod suite;
 pub mod zobrist;
 
-pub type AttackDirections<T > = Vec<BitBoard<T>>;
+pub type AttackDirections<T> = Vec<BitBoard<T>>;
 /// AttackLookup is indexed by the index of the Most Significant 1-Bit.
 ///
 /// It stores an `AttackDirections` (alias for `Vec<BitBoard>`).
 ///     For pieces that always move the same way (like Delta Pieces), only the first slot of this AttackDirections is used, because there's no directions.
 ///     For slider pieces, there are different indexes for specific ray directions of it.
 
-pub type AttackLookup<T > = Vec<AttackDirections<T>>;
+pub type AttackLookup<T> = Vec<AttackDirections<T>>;
 
 /// Indexed by the piece type; find a piece's attack lookups.
-pub type PieceLookup<T > = Vec<AttackLookup<T>>;
+pub type PieceLookup<T> = Vec<AttackLookup<T>>;
+
+#[derive(Clone, Copy)]
+pub struct MagicEntry<T : BitInt> {
+    pub mask: BitBoard<T>,
+    pub magic: u64,
+    pub index_bits: u32
+}
+
+pub type MagicLookUp<T> = Vec<Vec<MagicEntry<T>>>;
 
 pub struct Game<T : BitInt, const N: usize> {
     pub rules: Box<dyn GameRules<T, N>>,
     pub edges: Vec<Edges<T>>,
     pub bounds: Bounds,
     pub default_pos: String,
-    pub lookup: PieceLookup<T>
+    pub lookup: PieceLookup<T>,
+    pub magics: MagicLookUp<T>
 }
 
 impl<T : BitInt, const N: usize> Game<T, N> {
