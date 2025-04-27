@@ -35,6 +35,7 @@ impl <S : SliderMoves> Slider<S> {
 
     pub fn attacks<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, mask: BitBoard<T>) -> bool {
         let moving_team = board.state.team_to_move();
+        let blockers = board.state.black.or(board.state.white);
 
         for slider in board.state.pieces[piece_index].and(moving_team).iter() {
             let pos = slider as usize;
@@ -53,7 +54,7 @@ impl <S : SliderMoves> Slider<S> {
                     continue;
                 }
 
-                let ray = ray_attacks(board, pos, piece_index, dir, ray);
+                let ray = ray_attacks(board.game, pos, piece_index, dir, ray, blockers);
                 if ray.and(mask).set() { return true; }
             }
         }
@@ -64,6 +65,7 @@ impl <S : SliderMoves> Slider<S> {
     pub fn actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
         let moving_team = board.state.team_to_move();
         let mut actions: Vec<Action> = Vec::with_capacity(30);
+        let blockers = board.state.black.or(board.state.white);
 
         let piece = piece_index as u8;
         for slider in board.state.pieces[piece_index].and(moving_team).iter() {
@@ -75,7 +77,7 @@ impl <S : SliderMoves> Slider<S> {
 
             for dir in 0..rays {
                 let ray = board.game.lookup[piece_index][dir][pos];
-                moves = moves.or(ray_attacks(board, pos, piece_index, dir, ray));
+                moves = moves.or(ray_attacks(&board.game, pos, piece_index, dir, ray, blockers));
             }
 
             moves = moves.and_not(moving_team);
