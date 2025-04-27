@@ -54,7 +54,7 @@ impl <S : SliderMoves> Slider<S> {
                     continue;
                 }
 
-                let ray = ray_attacks(board.game, pos, piece_index, dir, ray, blockers);
+                let ray = ray_attacks(board.game, piece_index, pos, dir, ray, blockers);
                 if ray.and(mask).set() { return true; }
             }
         }
@@ -77,7 +77,7 @@ impl <S : SliderMoves> Slider<S> {
 
             for dir in 0..rays {
                 let ray = board.game.lookup[piece_index][dir][pos];
-                moves = moves.or(ray_attacks(&board.game, pos, piece_index, dir, ray, blockers));
+                moves = moves.or(ray_attacks(&board.game, piece_index, pos, dir, ray, blockers));
             }
 
             moves = moves.and_not(moving_team);
