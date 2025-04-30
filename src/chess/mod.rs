@@ -87,8 +87,8 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
 
         actions.extend(Pawn.actions(board, 0));
         actions.extend(Leaper(KnightMoves).actions(board, 1));
-        actions.extend(Slider(BishopMoves).actions(board, 2));
-        actions.extend(Slider(RookMoves).actions(board, 3));
+        actions.extend(Magic(BishopMoves).actions(board, 2));
+        actions.extend(Magic(RookMoves).actions(board, 3));
         actions.extend(Slider(QueenMoves).actions(board, 4));
         actions.extend(Leaper(KingMoves).actions(board, 5));
         actions.extend(castling_actions(board, 5));
@@ -100,8 +100,8 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
         Pawn.attacks(board, 0, mask) ||
         Leaper(KnightMoves).attacks(board, 1, mask) ||
         Leaper(KingMoves).attacks(board, 5, mask) ||
-        Slider(BishopMoves).attacks(board, 2, mask) ||
-        Slider(RookMoves).attacks(board, 3, mask) ||
+        Magic(BishopMoves).attacks(board, 2, mask) ||
+        Magic(RookMoves).attacks(board, 3, mask) ||
         Slider(QueenMoves).attacks(board, 4, mask)
     }    
 
@@ -441,8 +441,8 @@ impl GameTemplate for Chess {
         };
 
         Leaper(KnightMoves).process(&mut game, 1);
-        Slider(BishopMoves).process(&mut game, 2);
-        Slider(RookMoves).process(&mut game, 3);
+        Magic(BishopMoves).process(&mut game, 2);
+        Magic(RookMoves).process(&mut game, 3);
         Slider(QueenMoves).process(&mut game, 4);
         Leaper(KingMoves).process(&mut game, 5);
 

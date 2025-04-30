@@ -1,12 +1,13 @@
 pub mod sizedint;
 
 use num::{PrimInt, Unsigned};
+use num_traits::{WrappingMul, WrappingSub};
 
 pub trait BitInt:
-    PrimInt + Unsigned {}
+    PrimInt + Unsigned + WrappingMul + WrappingSub {}
 
 impl<T> BitInt for T where
-    T: PrimInt + Unsigned
+    T: PrimInt + Unsigned + WrappingMul + WrappingSub
 {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

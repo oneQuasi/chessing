@@ -28,11 +28,14 @@ pub type PieceLookup<T> = Vec<AttackLookup<T>>;
 #[derive(Clone, Copy)]
 pub struct MagicEntry<T : BitInt> {
     pub mask: BitBoard<T>,
-    pub magic: u64,
-    pub index_bits: u32
+    pub magic: T,
+    pub shift: usize
 }
 
-pub type MagicLookUp<T> = Vec<Vec<MagicEntry<T>>>;
+/// Indexed by the piece type; find a piece's magics.
+pub type PieceMagics<T> = Vec<MagicEntry<T>>;
+
+pub type MagicLookUp<T> = Vec<PieceMagics<T>>;
 
 pub struct Game<T : BitInt, const N: usize> {
     pub rules: Box<dyn GameRules<T, N>>,
