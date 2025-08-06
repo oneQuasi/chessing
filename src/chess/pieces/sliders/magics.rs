@@ -32,7 +32,6 @@ fn try_make_table<T : BitInt, S : SliderMoves, const N: usize>(
     Some(table)
 }
 
-#[inline(never)]
 fn magic_index<T : BitInt>(entry: MagicEntry<T>, blockers: BitBoard<T>) -> usize {
     let blockers = blockers.and(entry.mask);
     let hash = blockers.0.wrapping_mul(&entry.magic);
@@ -40,9 +39,8 @@ fn magic_index<T : BitInt>(entry: MagicEntry<T>, blockers: BitBoard<T>) -> usize
     index.to_usize().expect("Must be usize")
 }
 
-#[inline(never)]
 fn magic_moves<T: BitInt, const N: usize>(
-    board: &mut Board<T, N>,
+    board: &Board<T, N>,
     pos: usize,
     piece_index: usize,
     blockers: BitBoard<T>,
@@ -55,7 +53,6 @@ fn magic_moves<T: BitInt, const N: usize>(
     legal_moves
 }
 
-#[inline(never)]
 fn get_magic_entry<T: BitInt, const N: usize>(
     board: &Board<T, N>,
     piece_index: usize,
@@ -64,7 +61,6 @@ fn get_magic_entry<T: BitInt, const N: usize>(
     board.game.magics[piece_index][pos]
 }
 
-#[inline(never)]
 fn get_raw_magic_moves<T: BitInt, const N: usize>(
     board: &Board<T, N>,
     piece_index: usize,
@@ -130,11 +126,9 @@ impl <S : SliderMoves> Magic<S> {
 
         game.lookup[piece_index] = lookup;
         game.magics[piece_index] = magics;
-
-        println!("Done for {}", piece_index);
     }
 
-    pub fn attacks<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, mask: BitBoard<T>) -> bool {
+    pub fn attacks<T: BitInt, const N: usize>(&self, board: &Board<T, N>, piece_index: usize, lookup_index: usize, mask: BitBoard<T>) -> bool {
         let team = board.state.team_to_move();
         let blockers = board.state.black.or(board.state.white);
     
@@ -142,20 +136,18 @@ impl <S : SliderMoves> Magic<S> {
             .and(team)
             .iter()
             .any(|slider| {
-                let moves = magic_moves(board, slider as usize, piece_index, blockers, team);
-
+                let moves = magic_moves(board, slider as usize, lookup_index, blockers, team);
                 moves.and(mask).set()
             })
     }
 
-    #[inline(never)]
-    pub fn add_actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, actions: &mut Vec<Action>, piece_index: usize) {
+    pub fn add_actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, actions: &mut Vec<Action>, piece_index: usize, lookup_index: usize) {
         let team = board.state.team_to_move();
         let blockers = board.state.black.or(board.state.white);
         let piece = piece_index as u8;
     
         for slider in board.state.pieces[piece_index].and(team).iter() {
-            let moves = magic_moves(board, slider as usize, piece_index, blockers, team);
+            let moves = magic_moves(board, slider as usize, lookup_index, blockers, team);
 
             for to in moves.iter() {
                 actions.push(Action::from(slider as u16, to as u16, piece));

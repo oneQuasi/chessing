@@ -127,13 +127,13 @@ n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1;24;496;9483;182838;3605103;71179139
 
 #[cfg(test)]
 mod tests {
-    use crate::{bitboard::sizedint::SizedInt, chess::Chess, game::{suite::test_suite, GameTemplate}};
+    use crate::{bitboard::sizedint::SizedInt, chess::{Chess, MagicMoves, SliderMoves}, game::{suite::test_suite, GameTemplate}};
 
     use super::CHESS_SUITE;
 
     #[test]
     fn chess_suite() {
-        let chess = Chess::create::<u64, 6>();
+        let chess = Chess::<SliderMoves>::create::<u64, 6>();
         test_suite(CHESS_SUITE, &chess);
     }
 }

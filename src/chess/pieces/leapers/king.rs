@@ -34,7 +34,6 @@ pub fn make_castling_move<T: BitInt, const N: usize>(state: &mut BoardState<T, N
 
 pub fn add_castling_actions<T: BitInt, const N: usize>(board: &mut Board<T, N>, actions: &mut Vec<Action>, piece_index: usize) {
     let moving_team = board.state.team_to_move();
-    let mut castles: Vec<Action> = Vec::with_capacity(2);
     let piece = piece_index as u8;
 
     for king in board.state.pieces[piece_index].and(moving_team).and(board.state.first_move).iter() {

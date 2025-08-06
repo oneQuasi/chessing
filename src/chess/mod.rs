@@ -1,5 +1,7 @@
 
 
+use std::marker::PhantomData;
+
 use rustc_hash::FxHashMap as HashMap;
 
 use pieces::{leapers::{king::{make_castling_move, KingMoves}, knight::KnightMoves, leaper::Leaper}, pawn::{make_en_passant_move, make_promotion_move, Pawn}, sliders::{bishop::BishopMoves, magics::Magic, queen::QueenMoves, rook::RookMoves, slider::Slider}};
@@ -79,10 +81,52 @@ fn extract_castling_rights<T : BitInt, const N: usize>(board: &Board<T, N>) -> C
     }
 }
 
-pub struct ChessProcessor;
+pub trait ChessMoves {
+    fn actions<T : BitInt, const N: usize>(board: &mut Board<T, N>) -> Vec<Action>;
+    fn attacks<T : BitInt, const N: usize>(board: &mut Board<T, N>, mask: BitBoard<T>) -> bool;
+    fn process<T : BitInt, const N: usize>(game: &mut Game<T, N>);
+}
 
-impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
-    fn actions(&self, board: &mut Board<T, N>) -> Vec<Action> {
+pub struct MagicMoves;
+
+impl ChessMoves for MagicMoves {
+    fn actions<T : BitInt, const N: usize>(board: &mut Board<T, N>) -> Vec<Action> {
+        let mut actions = Vec::with_capacity(50);
+
+        Pawn.add_actions(board, &mut actions, 0);
+        Leaper(KnightMoves).add_actions(board, &mut actions, 1);
+        Magic(BishopMoves).add_actions(board, &mut actions, 2, 2);
+        Magic(RookMoves).add_actions(board, &mut actions, 3, 3);
+        Magic(BishopMoves).add_actions(board, &mut actions, 4, 2);
+        Magic(RookMoves).add_actions(board, &mut actions, 4, 3);
+        Leaper(KingMoves).add_actions(board, &mut actions, 5);
+        add_castling_actions(board, &mut actions, 5);
+
+        actions
+    }
+    
+    fn attacks<T : BitInt, const N: usize>(board: &mut Board<T, N>, mask: BitBoard<T>) -> bool {
+        Pawn.attacks(board, 0, mask) ||
+        Leaper(KnightMoves).attacks(board, 1, mask) ||
+        Leaper(KingMoves).attacks(board, 5, mask) ||
+        Magic(BishopMoves).attacks(board, 2, 2, mask) ||
+        Magic(RookMoves).attacks(board, 3, 3, mask) ||
+        Magic(BishopMoves).attacks(board, 4, 2, mask) ||
+        Magic(RookMoves).attacks(board, 4, 3, mask)
+    }    
+
+    fn process<T : BitInt, const N: usize>(game: &mut Game<T, N>) {
+        Leaper(KnightMoves).process(game, 1);
+        Magic(BishopMoves).process(game, 2);
+        Magic(RookMoves).process(game, 3);
+        Leaper(KingMoves).process(game, 5);
+    }
+}
+
+pub struct SliderMoves;
+
+impl ChessMoves for SliderMoves {
+    fn actions<T : BitInt, const N: usize>(board: &mut Board<T, N>) -> Vec<Action> {
         let mut actions = Vec::with_capacity(50);
 
         Pawn.add_actions(board, &mut actions, 0);
@@ -96,13 +140,35 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
         actions
     }
     
-    fn attacks(&self, board: &mut Board<T, N>, mask: BitBoard<T>) -> bool {
+    fn attacks<T : BitInt, const N: usize>(board: &mut Board<T, N>, mask: BitBoard<T>) -> bool {
         Pawn.attacks(board, 0, mask) ||
         Leaper(KnightMoves).attacks(board, 1, mask) ||
         Leaper(KingMoves).attacks(board, 5, mask) ||
         Slider(BishopMoves).attacks(board, 2, mask) ||
         Slider(RookMoves).attacks(board, 3, mask) ||
         Slider(QueenMoves).attacks(board, 4, mask)
+    }    
+
+    fn process<T : BitInt, const N: usize>(game: &mut Game<T, N>) {
+        Leaper(KnightMoves).process(game, 1);
+        Slider(BishopMoves).process(game, 2);
+        Slider(RookMoves).process(game, 3);
+        Slider(QueenMoves).process(game, 4);
+        Leaper(KingMoves).process(game, 5);
+    }
+}
+
+pub struct ChessProcessor<Moves> {
+    _phantom: PhantomData<Moves>
+}
+
+impl<T : BitInt, Moves: ChessMoves, const N: usize> GameRules<T, N> for ChessProcessor<Moves> {
+    fn actions(&self, board: &mut Board<T, N>) -> Vec<Action> {
+        Moves::actions(board)
+    }
+    
+    fn attacks(&self, board: &mut Board<T, N>, mask: BitBoard<T>) -> bool {
+        Moves::attacks(board, mask)
     }    
 
     fn play(&self, board: &mut Board<T, N>, act: Action) {
@@ -423,13 +489,15 @@ impl<T : BitInt, const N: usize> GameRules<T, N> for ChessProcessor {
     }
 }
 
-pub struct Chess;
+pub struct Chess<Moves> {
+    _phantom: PhantomData<Moves>
+}
 
-impl GameTemplate for Chess {
+impl <Moves: ChessMoves + 'static> GameTemplate for Chess<Moves> {
     fn create<T : BitInt, const N: usize>() -> Game<T, N> {
         let bounds = Bounds::new(8, 8);
         let mut game = Game {
-            rules: Box::new(ChessProcessor),
+            rules: Box::new(ChessProcessor { _phantom: PhantomData::<Moves> }),
             bounds,
             default_pos: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string(),
             lookup: [ const { vec![] }; N ],
@@ -440,11 +508,7 @@ impl GameTemplate for Chess {
             magics: [ const { vec![] }; N ]
         };
 
-        Leaper(KnightMoves).process(&mut game, 1);
-        Slider(BishopMoves).process(&mut game, 2);
-        Slider(RookMoves).process(&mut game, 3);
-        Slider(QueenMoves).process(&mut game, 4);
-        Leaper(KingMoves).process(&mut game, 5);
+        Moves::process(&mut game);
 
         game
     }
@@ -454,13 +518,13 @@ impl GameTemplate for Chess {
 mod tests {
     use std::collections::{HashMap, HashSet};
 
-    use crate::{chess::Chess, game::{suite::{parse_suite, test_suite}, GameTemplate}};
+    use crate::{chess::{Chess, MagicMoves}, game::{suite::{parse_suite, test_suite}, GameTemplate}};
 
     use super::{suite::CHESS_SUITE, test_positions::TEST_POSITIONS};
 
     #[test]
     fn chess_zobrist() {
-        let chess = Chess::create::<u64, 6>();
+        let chess = Chess::<MagicMoves>::create::<u64, 6>();
         let mut board = chess.default();
 
         let table = chess.rules.gen_zobrist(&mut board, 64);
@@ -488,7 +552,7 @@ mod tests {
 
     #[test]
     fn chess_fens() {
-        let chess = Chess::create::<u64, 6>();
+        let chess = Chess::<MagicMoves>::create::<u64, 6>();
 
         let mut positions = HashSet::<String>::new();
         let mut collisions = 0;

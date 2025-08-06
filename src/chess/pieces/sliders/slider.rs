@@ -82,12 +82,13 @@ impl <S : SliderMoves> Slider<S> {
     }
 
     pub fn attacks<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, mask: BitBoard<T>) -> bool {
-        let team = board.state.team_to_move();
+        let pieces = board.state.pieces[piece_index].and(board.state.team_to_move());
+        if pieces.empty() {
+            return false;
+        }
+        
         let blockers = board.state.black.or(board.state.white);
-    
-        board.state.pieces[piece_index]
-            .and(team)
-            .iter()
+        pieces.iter()
             .any(|pos| Slider::<S>::can_attack(&board.game, piece_index, pos as usize, blockers, mask))
     }
 
