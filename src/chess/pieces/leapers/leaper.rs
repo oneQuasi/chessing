@@ -32,9 +32,8 @@ impl<S : LeaperMoves> Leaper<S> {
     }
 
 
-    pub fn actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
+    pub fn add_actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, actions: &mut Vec<Action>, piece_index: usize) {
         let moving_team = board.state.team_to_move();
-        let mut actions: Vec<Action> = Vec::with_capacity(8);
 
         let piece = piece_index as u8;
         for leaper in board.state.pieces[piece_index].and(moving_team).iter() {
@@ -44,7 +43,5 @@ impl<S : LeaperMoves> Leaper<S> {
                 actions.push(Action::from(pos, movement as u16, piece))
             }
         }
-    
-        actions
     }
 }

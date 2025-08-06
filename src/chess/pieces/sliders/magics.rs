@@ -3,14 +3,6 @@ use crate::{bitboard::{BitBoard, BitInt, Edges}, game::{action::{make_chess_move
 
 use super::{ray_attacks, repeat, slider::{Slider, SliderMoves}};
 
-#[inline(never)]
-fn magic_index<T : BitInt>(entry: MagicEntry<T>, blockers: BitBoard<T>) -> usize {
-    let blockers = blockers.and(entry.mask);
-    let hash = blockers.0.wrapping_mul(&entry.magic);
-    let index = hash >> entry.shift;
-    index.to_usize().expect("Must be usize")
-}
-
 fn try_make_table<T : BitInt, S : SliderMoves, const N: usize>(
     game: &mut Game<T, N>, 
     entry: MagicEntry<T>,
@@ -38,6 +30,53 @@ fn try_make_table<T : BitInt, S : SliderMoves, const N: usize>(
     }
 
     Some(table)
+}
+
+#[inline(never)]
+fn magic_index<T : BitInt>(entry: MagicEntry<T>, blockers: BitBoard<T>) -> usize {
+    let blockers = blockers.and(entry.mask);
+    let hash = blockers.0.wrapping_mul(&entry.magic);
+    let index = hash >> entry.shift;
+    index.to_usize().expect("Must be usize")
+}
+
+#[inline(never)]
+fn magic_moves<T: BitInt, const N: usize>(
+    board: &mut Board<T, N>,
+    pos: usize,
+    piece_index: usize,
+    blockers: BitBoard<T>,
+    team: BitBoard<T>,
+) -> BitBoard<T> {
+    let entry = get_magic_entry(board, piece_index, pos);
+    let magic_ind = magic_index(entry, blockers);
+    let raw_moves = get_raw_magic_moves(board, piece_index, pos, magic_ind);
+    let legal_moves = filter_friendly(raw_moves, team);
+    legal_moves
+}
+
+#[inline(never)]
+fn get_magic_entry<T: BitInt, const N: usize>(
+    board: &Board<T, N>,
+    piece_index: usize,
+    pos: usize,
+) -> MagicEntry<T> {
+    board.game.magics[piece_index][pos]
+}
+
+#[inline(never)]
+fn get_raw_magic_moves<T: BitInt, const N: usize>(
+    board: &Board<T, N>,
+    piece_index: usize,
+    pos: usize,
+    magic_ind: usize,
+) -> BitBoard<T> {
+    board.game.lookup[piece_index][pos][magic_ind]
+}
+
+#[inline(always)]
+fn filter_friendly<T: BitInt>(moves: BitBoard<T>, team: BitBoard<T>) -> BitBoard<T> {
+    moves.and_not(team)
 }
 
 #[derive(Copy, Clone)]
@@ -103,35 +142,24 @@ impl <S : SliderMoves> Magic<S> {
             .and(team)
             .iter()
             .any(|slider| {
-                let pos = slider as usize;
-                let entry = board.game.magics[piece_index][pos];
-                let magic_ind = magic_index(entry, blockers);
-                let moves = board.game.lookup[piece_index][pos][magic_ind]
-                    .and_not(team);
-    
+                let moves = magic_moves(board, slider as usize, piece_index, blockers, team);
+
                 moves.and(mask).set()
             })
     }
 
     #[inline(never)]
-    pub fn actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
+    pub fn add_actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, actions: &mut Vec<Action>, piece_index: usize) {
         let team = board.state.team_to_move();
         let blockers = board.state.black.or(board.state.white);
         let piece = piece_index as u8;
     
-        board.state.pieces[piece_index]
-            .and(team)
-            .iter()
-            .flat_map(|slider| {
-                let pos = slider as usize;
-                let from = pos as u16;
-                let entry = board.game.magics[piece_index][pos];
-                let magic_ind = magic_index(entry, blockers);
-                let moves = board.game.lookup[piece_index][pos][magic_ind]
-                    .and_not(team);
-    
-                moves.iter().map(move |to| Action::from(from, to as u16, piece))
-            })
-            .collect()
+        for slider in board.state.pieces[piece_index].and(team).iter() {
+            let moves = magic_moves(board, slider as usize, piece_index, blockers, team);
+
+            for to in moves.iter() {
+                actions.push(Action::from(slider as u16, to as u16, piece));
+            }
+        }
     }
 }

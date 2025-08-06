@@ -91,19 +91,19 @@ impl <S : SliderMoves> Slider<S> {
             .any(|pos| Slider::<S>::can_attack(&board.game, piece_index, pos as usize, blockers, mask))
     }
 
-    pub fn actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
+    pub fn add_actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, actions: &mut Vec<Action>, piece_index: usize) {
         let team = board.state.team_to_move();
         let blockers = board.state.black.or(board.state.white);
         let piece = piece_index as u8;
     
-        board.state.pieces[piece_index]
-            .and(team)
-            .iter()
-            .flat_map(|pos| {
-                let from = pos as u16;
-                let moves = Slider::<S>::list_moves(&board.game, piece_index, pos as usize, blockers).and_not(team);
-                moves.iter().map(move |to| Action::from(from, to as u16, piece))
-            })
-            .collect()
+        for pos in board.state.pieces[piece_index].and(team).iter() {
+            let from = pos as u16;
+            let moves = Slider::<S>::list_moves(&board.game, piece_index, pos as usize, blockers)
+                .and_not(team);
+
+            for to in moves.iter() {
+                actions.push(Action::from(from, to as u16, piece));
+            }
+        }
     }
 }

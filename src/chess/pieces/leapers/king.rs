@@ -32,7 +32,7 @@ pub fn make_castling_move<T: BitInt, const N: usize>(state: &mut BoardState<T, N
     }
 }
 
-pub fn castling_actions<T: BitInt, const N: usize>(board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
+pub fn add_castling_actions<T: BitInt, const N: usize>(board: &mut Board<T, N>, actions: &mut Vec<Action>, piece_index: usize) {
     let moving_team = board.state.team_to_move();
     let mut castles: Vec<Action> = Vec::with_capacity(2);
     let piece = piece_index as u8;
@@ -63,11 +63,9 @@ pub fn castling_actions<T: BitInt, const N: usize>(board: &mut Board<T, N>, piec
             }
 
             // We can castle! This move is represented as king goes to where the rook is.
-            castles.push(Action::from(pos, rook as u16, piece).with_info(1));
+            actions.push(Action::from(pos, rook as u16, piece).with_info(1));
         }
     }
-
-    castles
 }
 
 pub struct KingMoves;

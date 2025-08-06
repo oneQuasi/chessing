@@ -23,7 +23,7 @@ pub type AttackDirections<T> = Vec<BitBoard<T>>;
 pub type AttackLookup<T> = Vec<AttackDirections<T>>;
 
 /// Indexed by the piece type; find a piece's attack lookups.
-pub type PieceLookup<T> = Vec<AttackLookup<T>>;
+pub type PieceLookup<T, const N: usize> = [ AttackLookup<T>; N ];
 
 #[derive(Clone, Copy)]
 pub struct MagicEntry<T : BitInt> {
@@ -35,15 +35,15 @@ pub struct MagicEntry<T : BitInt> {
 /// Indexed by the piece type; find a piece's magics.
 pub type PieceMagics<T> = Vec<MagicEntry<T>>;
 
-pub type MagicLookUp<T> = Vec<PieceMagics<T>>;
+pub type MagicLookUp<T, const N: usize> = [ PieceMagics<T>; N ];
 
 pub struct Game<T : BitInt, const N: usize> {
     pub rules: Box<dyn GameRules<T, N>>,
     pub edges: Vec<Edges<T>>,
     pub bounds: Bounds,
     pub default_pos: String,
-    pub lookup: PieceLookup<T>,
-    pub magics: MagicLookUp<T>
+    pub lookup: PieceLookup<T, N>,
+    pub magics: MagicLookUp<T, N>
 }
 
 impl<T : BitInt, const N: usize> Game<T, N> {
