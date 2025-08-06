@@ -1,6 +1,4 @@
 pub mod pawn;
-pub mod knight;
+pub mod leapers;
 pub mod sliders;
-pub mod king;
-
 

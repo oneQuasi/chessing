@@ -1,12 +1,13 @@
 pub mod sizedint;
 
 use num::{PrimInt, Unsigned};
+use num_traits::{WrappingMul, WrappingSub};
 
 pub trait BitInt:
-    PrimInt + Unsigned {}
+    PrimInt + Unsigned + WrappingMul + WrappingSub {}
 
 impl<T> BitInt for T where
-    T: PrimInt + Unsigned
+    T: PrimInt + Unsigned + WrappingMul + WrappingSub
 {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -98,6 +99,34 @@ impl<T: BitInt> BitBoard<T> {
 
     pub fn down(self, tiles: usize) -> BitBoard<T> {
         BitBoard(self.0 >> (8 * tiles))
+    }
+
+    pub fn try_right(mut self, edges: &Edges<T>, tiles: usize) -> BitBoard<T> {
+        for _ in 0..tiles {
+            self = self.and_not(edges.right).right(1);
+        }
+        self
+    }
+    
+    pub fn try_left(mut self, edges: &Edges<T>, tiles: usize) -> BitBoard<T> {
+        for _ in 0..tiles {
+            self = self.and_not(edges.left).left(1);
+        }
+        self
+    }
+    
+    pub fn try_up(mut self, edges: &Edges<T>, tiles: usize) -> BitBoard<T> {
+        for _ in 0..tiles {
+            self = self.and_not(edges.top).up(1);
+        }
+        self
+    }
+    
+    pub fn try_down(mut self, edges: &Edges<T>, tiles: usize) -> BitBoard<T> {
+        for _ in 0..tiles {
+            self = self.and_not(edges.bottom).down(1);
+        }
+        self
     }
 
     pub fn display(self, bounds: Bounds) {
@@ -199,8 +228,16 @@ impl<T: BitInt> BitBoard<T> {
         }
     }
 
-    pub fn empty() -> BitBoard<T> {
+    pub fn default() -> BitBoard<T> {
         BitBoard(T::zero())
+    }
+
+    pub fn combine(boards: &[BitBoard<T>]) -> BitBoard<T> {
+        let mut out = BitBoard::default();
+        for &board in boards {
+            out = out.or(board);
+        }
+        out
     }
 
     pub fn index(index: u16) -> BitBoard<T> {
@@ -249,21 +286,21 @@ impl<T: BitInt> BitBoard<T> {
         BitPositions::new(self.0)
     }
 
-    pub fn is_set(self) -> bool {
+    pub fn set(self) -> bool {
         self.0 != T::zero()
     }
 
-    pub fn is_empty(self) -> bool {
+    pub fn empty(self) -> bool {
         self.0 == T::zero()
     }
 
     pub fn bitscan_forward(self) -> u32 {
-        assert!(self.is_set(), "BitBoard must be set to BitScan");
+        assert!(self.set(), "BitBoard must be set to BitScan");
         self.0.trailing_zeros()
     }
 
     pub fn bitscan_backward(self) -> u32 {
-        assert!(self.is_set(), "BitBoard must be set to BitScan");
+        assert!(self.set(), "BitBoard must be set to BitScan");
         T::zero().count_zeros() - 1 - self.0.leading_zeros()
     }
 }

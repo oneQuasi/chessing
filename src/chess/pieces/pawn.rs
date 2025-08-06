@@ -1,4 +1,4 @@
-use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action, ActionRecord}, piece::{Piece, PieceRules}, Board, BoardState, Team}};
+use crate::{bitboard::{BitBoard, BitInt}, game::{action::{index_to_square, make_chess_move, Action, ActionRecord}, Board, BoardState, Team}};
 
 #[inline(always)]
 fn list_white_pawn_captures<T: BitInt, const N: usize>(board: &mut Board<T, N>, piece_index: usize) -> BitBoard<T> {
@@ -6,8 +6,8 @@ fn list_white_pawn_captures<T: BitInt, const N: usize>(board: &mut Board<T, N>, 
     let edges = board.game.edges[0];
 
     let up_once = pawns.and(board.state.white).up(1);
-    let left_captures = up_once.and_not(edges.left).left(1);
-    let right_captures = up_once.and_not(edges.right).right(1);
+    let left_captures = up_once.try_left(&edges, 1);
+    let right_captures = up_once.try_right(&edges, 1);
 
     left_captures.or(right_captures)
 }
@@ -18,8 +18,8 @@ fn list_black_pawn_captures<T: BitInt, const N: usize>(board: &mut Board<T, N>, 
     let edges = board.game.edges[0];
 
     let down_once = pawns.and(board.state.black).down(1);
-    let left_captures = down_once.and_not(edges.left).left(1);
-    let right_captures = down_once.and_not(edges.right).right(1);
+    let left_captures = down_once.try_left(&edges, 1);
+    let right_captures = down_once.try_right(&edges, 1);
 
     left_captures.or(right_captures)
 }
@@ -49,7 +49,7 @@ fn add_black_action<T: BitInt, const N: usize>(board: &mut Board<T, N>, actions:
 }
 
 #[inline(always)]
-fn list_white_pawn_actions<T: BitInt, const N: usize>(board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
+fn add_white_pawn_actions<T: BitInt, const N: usize>(board: &mut Board<T, N>, actions: &mut Vec<Action>, piece_index: usize) {
     let edges = board.game.edges[0];
 
     let white = board.state.white;
@@ -67,30 +67,29 @@ fn list_white_pawn_actions<T: BitInt, const N: usize>(board: &mut Board<T, N>, p
 
     let up_once = white_pawns.up(1);
 
-    let possible_left_captures = up_once.and_not(edges.left).left(1);
-    let possible_right_captures = up_once.and_not(edges.right).right(1);
+    let possible_left_captures = up_once.try_left(&edges, 1);
+    let possible_right_captures = up_once.try_right(&edges, 1);
 
     let left_captures = possible_left_captures.and(black);
     let right_captures = possible_right_captures.and(black);
 
-    let mut actions: Vec<Action> = Vec::with_capacity(pawns.count() as usize);
     let piece = piece_index as u8;
 
     for movement in moves.iter() {
         let movement = movement as u16;
-        add_white_action(board, &mut actions, Action::from(movement - 8, movement, piece));
+        add_white_action(board, actions, Action::from(movement - 8, movement, piece));
     }
     for movement in first_moves.iter() {
         let movement = movement as u16;
-        add_white_action(board, &mut actions, Action::from(movement - 16, movement, piece));
+        add_white_action(board, actions, Action::from(movement - 16, movement, piece));
     }
     for movement in left_captures.iter() {
         let movement = movement as u16;
-        add_white_action(board, &mut actions, Action::from(movement - 8 + 1, movement, piece));
+        add_white_action(board, actions, Action::from(movement - 8 + 1, movement, piece));
     }
     for movement in right_captures.iter() {
         let movement = movement as u16;
-        add_white_action(board, &mut actions, Action::from(movement - 8 - 1, movement, piece));
+        add_white_action(board, actions, Action::from(movement - 8 - 1, movement, piece));
     }
 
     if let Some(ActionRecord::Action(last_move)) = board.history.last() {
@@ -103,23 +102,21 @@ fn list_white_pawn_actions<T: BitInt, const N: usize>(board: &mut Board<T, N>, p
                 if was_double_move {
                     let capture = last_move.from - 8;
                     let target = BitBoard::<T>::index(capture.into());
-                    if possible_left_captures.and(target).is_set() {
-                        add_white_action(board, &mut actions, Action::from(capture - 8 + 1, capture, piece).with_info(1));
+                    if possible_left_captures.and(target).set() {
+                        add_white_action(board, actions, Action::from(capture - 8 + 1, capture, piece).with_info(1));
                     }
 
-                    if possible_right_captures.and(target).is_set() {
-                        add_white_action(board, &mut actions, Action::from(capture - 8 - 1, capture, piece).with_info(1));
+                    if possible_right_captures.and(target).set() {
+                        add_white_action(board, actions, Action::from(capture - 8 - 1, capture, piece).with_info(1));
                     }
                 }
             }
         }
     }
-
-    actions
 }
 
 #[inline(always)]
-fn list_black_pawn_actions<T: BitInt, const N: usize>(board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
+fn add_black_pawn_actions<T: BitInt, const N: usize>(board: &mut Board<T, N>, actions: &mut Vec<Action>, piece_index: usize) {
     let edges = board.game.edges[0];
 
     let white = board.state.white;
@@ -137,31 +134,29 @@ fn list_black_pawn_actions<T: BitInt, const N: usize>(board: &mut Board<T, N>, p
 
     let down_once = black_pawns.down(1);
 
-    let possible_left_captures = down_once.and_not(edges.left).left(1);
-    let possible_right_captures = down_once.and_not(edges.right).right(1);
+    let possible_left_captures = down_once.try_left(&edges, 1);
+    let possible_right_captures = down_once.try_right(&edges, 1);
 
     let left_captures = possible_left_captures.and(white);
     let right_captures = possible_right_captures.and(white);
-
-    let mut actions: Vec<Action> = Vec::with_capacity(pawns.count() as usize);
 
     let piece = piece_index as u8;
 
     for movement in moves.iter() {
         let movement = movement as u16;
-        add_black_action(board, &mut actions, Action::from(movement + 8, movement, piece));
+        add_black_action(board, actions, Action::from(movement + 8, movement, piece));
     }
     for movement in first_moves.iter() {
         let movement = movement as u16;
-        add_black_action(board, &mut actions, Action::from(movement + 16, movement, piece));
+        add_black_action(board, actions, Action::from(movement + 16, movement, piece));
     }
     for movement in left_captures.iter() {
         let movement = movement as u16;
-        add_black_action(board, &mut actions, Action::from(movement + 8 + 1, movement, piece));
+        add_black_action(board, actions, Action::from(movement + 8 + 1, movement, piece));
     }
     for movement in right_captures.iter() {
         let movement = movement as u16;
-        add_black_action(board, &mut actions, Action::from(movement + 8 - 1, movement, piece));
+        add_black_action(board, actions, Action::from(movement + 8 - 1, movement, piece));
     }
 
     if let Some(ActionRecord::Action(last_move)) = board.history.last() {
@@ -174,22 +169,20 @@ fn list_black_pawn_actions<T: BitInt, const N: usize>(board: &mut Board<T, N>, p
                 if was_double_move {
                     let capture = last_move.from + 8;
                     let target = BitBoard::<T>::index(capture.into());
-                    if possible_left_captures.and(target).is_set() {
-                        add_black_action(board, &mut actions, Action::from(capture + 8 + 1, capture, piece).with_info(1));
+                    if possible_left_captures.and(target).set() {
+                        add_black_action(board, actions, Action::from(capture + 8 + 1, capture, piece).with_info(1));
                     }
 
-                    if possible_right_captures.and(target).is_set() {
-                        add_black_action(board, &mut actions, Action::from(capture + 8 - 1, capture, piece).with_info(1));
+                    if possible_right_captures.and(target).set() {
+                        add_black_action(board, actions, Action::from(capture + 8 - 1, capture, piece).with_info(1));
                     }
                 }
             }
         }
     }
-
-    actions
 }
 
-fn make_en_passant_move<T: BitInt, const N: usize>(state: &mut BoardState<T, N>, action: Action) {
+pub fn make_en_passant_move<T: BitInt, const N: usize>(state: &mut BoardState<T, N>, action: Action) {
     let team = state.moving_team;
     let from = BitBoard::index(action.from);
     let to = BitBoard::index(action.to);
@@ -218,7 +211,7 @@ fn make_en_passant_move<T: BitInt, const N: usize>(state: &mut BoardState<T, N>,
     state.first_move = state.first_move.xor(from).xor(taken);
 }
 
-fn make_promotion_move<T: BitInt, const N: usize>(state: &mut BoardState<T, N>, action: Action) {
+pub fn make_promotion_move<T: BitInt, const N: usize>(state: &mut BoardState<T, N>, action: Action) {
     let piece_index = action.piece as usize;
     let victim_index = state.piece_at(action.to);
     let promoted_piece_type = action.info - 2;
@@ -275,10 +268,10 @@ fn make_promotion_move<T: BitInt, const N: usize>(state: &mut BoardState<T, N>, 
 }
 
 
-pub struct PawnRules;
+pub struct Pawn;
 
-impl<T: BitInt, const N: usize> PieceRules<T, N> for PawnRules {
-    fn load(&self, board: &mut Board<T, N>, piece_index: usize) {
+impl Pawn {
+    pub fn load<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize) {
         let edges = board.game.edges[0];
 
         let pawns = board.state.pieces[piece_index];
@@ -289,42 +282,17 @@ impl<T: BitInt, const N: usize> PieceRules<T, N> for PawnRules {
         board.state.first_move = board.state.first_move.and_not(moved_white_pawns).and_not(moved_black_pawns);
     }
 
-    fn list_actions(&self, board: &mut Board<T, N>, piece_index: usize) -> Vec<Action> {
-        if board.state.moving_team == Team::White {
-            list_white_pawn_actions(board, piece_index)
-        } else {
-            list_black_pawn_actions(board, piece_index)
+    pub fn add_actions<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, actions: &mut Vec<Action>, piece_index: usize) {
+        match board.state.moving_team {
+            Team::White => add_white_pawn_actions(board, actions, piece_index),
+            Team::Black => add_black_pawn_actions(board, actions, piece_index)
+        };
+    }
+
+    pub fn attacks<T: BitInt, const N: usize>(&self, board: &mut Board<T, N>, piece_index: usize, mask: BitBoard<T>) -> bool {
+        match board.state.moving_team {
+            Team::White => list_white_pawn_captures(board, piece_index).and(mask).set(),
+            Team::Black => list_black_pawn_captures(board, piece_index).and(mask).set()
         }
     }
-
-    fn capture_mask(&self, board: &mut Board<T, N>, piece_index: usize, _: BitBoard<T>) -> BitBoard<T> {
-        if board.state.moving_team == Team::White {
-            list_white_pawn_captures(board, piece_index)
-        } else {
-            list_black_pawn_captures(board, piece_index)
-        }
-    }
-
-    fn make_move(&self, board: &mut Board<T, N>, action: Action) {
-        match action.info {
-            0 => make_chess_move(&mut board.state, action),
-            1 => make_en_passant_move(&mut board.state, action),
-            _ => make_promotion_move(&mut board.state, action)
-        }
-    }
-
-    fn display_action(&self, board: &mut Board<T, N>, action: Action) -> Vec<String> {
-        let promotion_piece_type = if action.info > 1 {
-            board.game.pieces[(action.info - 2) as usize].symbol.to_lowercase()
-        } else { "".to_string() };
-
-        vec![
-            format!("{}{}{}", index_to_square(action.from), index_to_square(action.to), promotion_piece_type)
-        ]
-    }
-
-}
-
-pub fn create_pawn<T: BitInt, const N: usize>() -> Piece<T, N> {
-    Piece::new("p", "pawn", Box::new(PawnRules))
 }
