@@ -133,7 +133,7 @@ mod tests {
 
     #[test]
     fn chess_suite() {
-        let chess = Chess::<SliderMoves>::create::<u64, 6>();
+        let chess = Chess::<MagicMoves>::create::<u64, 6>();
         test_suite(CHESS_SUITE, &chess);
     }
 }

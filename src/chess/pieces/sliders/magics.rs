@@ -35,8 +35,8 @@ fn try_make_table<T : BitInt, S : SliderMoves, const N: usize>(
 fn magic_index<T : BitInt>(entry: MagicEntry<T>, blockers: BitBoard<T>) -> usize {
     let blockers = blockers.and(entry.mask);
     let hash = blockers.0.wrapping_mul(&entry.magic);
-    let index = hash >> entry.shift;
-    index.to_usize().expect("Must be usize")
+    let index = unsafe { (hash >> entry.shift).to_usize().unwrap_unchecked() };
+    index
 }
 
 fn magic_moves<T: BitInt, const N: usize>(
@@ -58,7 +58,7 @@ fn get_magic_entry<T: BitInt, const N: usize>(
     piece_index: usize,
     pos: usize,
 ) -> MagicEntry<T> {
-    board.game.magics[piece_index][pos]
+    unsafe { *board.game.magics.get_unchecked(piece_index).get_unchecked(pos) }
 }
 
 fn get_raw_magic_moves<T: BitInt, const N: usize>(
@@ -67,7 +67,14 @@ fn get_raw_magic_moves<T: BitInt, const N: usize>(
     pos: usize,
     magic_ind: usize,
 ) -> BitBoard<T> {
-    board.game.lookup[piece_index][pos][magic_ind]
+    unsafe {
+        *board
+            .game
+            .lookup
+            .get_unchecked(piece_index)
+            .get_unchecked(pos)
+            .get_unchecked(magic_ind)
+    }
 }
 
 #[inline(always)]
