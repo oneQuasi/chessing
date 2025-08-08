@@ -11,6 +11,7 @@ impl<T> BitInt for T where
 {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(transparent)]
 pub struct BitBoard<T: BitInt>(pub T);
 
 #[derive(Clone, Copy, Debug)]
